@@ -218,7 +218,7 @@
       <div class="email-header">
         <span class="email-header-title">✉️ Manager Email</span>
         <div class="email-header-btns">
-          <button class="copy-btn" id="copyEmailBtn" onclick="copyEmail()">Copy Body</button>
+          <button class="copy-btn" id="copyEmailBtn" onclick="copyEmail()">Copy Plain</button><button class="copy-btn" id="copyRichBtn" onclick="copyRichEmail()" style="margin-left:8px;">Copy Formatted ✨</button>
           <button class="outlook-btn" id="outlookBtn" onclick="openOutlook()">Open in Outlook →</button>
         </div>
       </div>
@@ -676,7 +676,27 @@
   function copyEmail() {
     navigator.clipboard.writeText(buildEmailBodyPlain()).then(function() {
       var btn = document.getElementById('copyEmailBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy Body'; btn.classList.remove('copied'); }, 2000);
+      setTimeout(function() { btn.textContent = 'Copy Plain'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyRichEmail() {
+    var html = buildEmailBodyHtml();
+    var blob = new Blob([html], { type: 'text/html' });
+    var plain = buildEmailBodyPlain();
+    var plainBlob = new Blob([plain], { type: 'text/plain' });
+    var item = new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob });
+    navigator.clipboard.write([item]).then(function() {
+      var btn = document.getElementById('copyRichBtn');
+      btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy Formatted ✨'; btn.classList.remove('copied'); }, 2000);
+    }).catch(function() {
+      // fallback to plain if ClipboardItem not supported
+      navigator.clipboard.writeText(plain).then(function() {
+        var btn = document.getElementById('copyRichBtn');
+        btn.textContent = '⚠ Copied plain (browser limitation)'; 
+        setTimeout(function() { btn.textContent = 'Copy Formatted ✨'; }, 3000);
+      });
     });
   }
 
