@@ -64,7 +64,17 @@
   .instructions li { counter-increment: steps; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text); line-height: 1.5; }
   .instructions li::before { content: counter(steps); background: var(--accent); color: white; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
   kbd { background: var(--bg); border: 1px solid var(--border2); border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 11px; padding: 1px 5px; color: var(--text); }
-  .code-area { padding: 16px 18px; background: #101510; font-family: 'DM Mono', monospace; font-size: 11px; color: #7dda9a; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto; line-height: 1.7; }
+  .bookmarklet-wrap { display:flex; align-items:center; gap:14px; margin:18px 0 10px; }
+  .bookmarklet-link {
+    display:inline-block; padding:11px 20px; background:var(--green); color:#fff;
+    font:700 14px/1 'DM Sans',sans-serif; border-radius:8px; text-decoration:none;
+    border:2px solid transparent; cursor:grab; user-select:none;
+    box-shadow:0 2px 8px rgba(26,71,42,.25);
+    transition:background .15s,transform .1s;
+  }
+  .bookmarklet-link:hover { background:#145c22; transform:translateY(-1px); }
+  .bookmarklet-link:active { cursor:grabbing; transform:translateY(0); }
+  .bookmarklet-hint { font-size:13px; color:#666; font-style:italic; } padding: 16px 18px; background: #101510; font-family: 'DM Mono', monospace; font-size: 11px; color: #7dda9a; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto; line-height: 1.7; }
   .note { padding: 12px 18px; background: #fffbf0; border-top: 1px solid #f0e8cc; font-size: 12px; color: #7a6520; line-height: 1.5; }
   .reset-btn { background: none; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 8px 14px; cursor: pointer; margin-top: 16px; transition: color 0.15s, border-color 0.15s; }
   .reset-btn:hover { color: var(--text); border-color: var(--text); }
@@ -144,19 +154,22 @@
       <div class="panel-header"><span class="panel-title">Extracted Fields</span><span class="field-count" id="fieldCount">0 fields</span></div>
       <div class="fields-grid" id="fieldsGrid"></div>
     </div>
-    <button class="gen-btn" id="genBtn" onclick="generateScript()">Generate Autofill Script →</button>
+    <button class="gen-btn" id="genBtn" onclick="generateScript()">Generate Bookmarklet →</button>
     <div class="output-panel" id="outputPanel">
-      <div class="output-header"><span class="output-header-title">Console Script</span><button class="copy-btn" id="copyBtn" onclick="copyScript()">Copy</button></div>
+      <div class="output-header"><span class="output-header-title">Autofill Bookmarklet</span></div>
       <div class="instructions">
         <ol>
-          <li>Open the Marval new starter form and log in as normal</li>
-          <li>Press <kbd>F12</kbd> → click the <kbd>Console</kbd> tab</li>
-          <li>Paste the script and press <kbd>Enter</kbd> — fields fill automatically</li>
-          <li>Next page of the form → paste and run again</li>
+          <li>Drag the button below to your bookmarks bar (do this once)</li>
+          <li>Open the Marval new starter form and navigate to any page</li>
+          <li>Click the bookmark — fields on that page fill automatically</li>
+          <li>Click Next Step, then click the bookmark again on the next page</li>
         </ol>
       </div>
-      <div class="code-area" id="codeArea"></div>
-      <div class="note">If some fields don't fill, the Marval form labels may differ. Send a screenshot and the script can be tuned.</div>
+      <div class="bookmarklet-wrap" id="bookmarkletWrap">
+        <a class="bookmarklet-link" id="bookmarkletLink" href="#" title="Drag me to your bookmarks bar">🔖 Fill Marval Form</a>
+        <span class="bookmarklet-hint">← Drag this to your bookmarks bar</span>
+      </div>
+      <div class="note">Runs on every page of the form — just click it after each Next Step. No F12 needed.</div>
     </div>
     <button class="reset-btn" id="resetBtn" onclick="doReset()" style="display:none">↩ Upload a different document</button>
   </div>
@@ -327,17 +340,93 @@
 
   function generateScript() {
     var d = parsedData;
-    var script = '(function() {\n  var data = {\n    title: '+JSON.stringify(d.title||'')+',\n    firstName: '+JSON.stringify(d.firstName||'')+',\n    surname: '+JSON.stringify(d.surname||'')+',\n    jobTitle: '+JSON.stringify(d.jobTitle||'')+',\n    department: '+JSON.stringify(d.department||'')+',\n    teamName: '+JSON.stringify(d.teamName||'')+',\n    officeLocation: '+JSON.stringify(d.officeLocation||'')+',\n    roomNumber: '+JSON.stringify(d.roomNumber||'')+',\n    employmentStatus: '+JSON.stringify(d.employmentStatus||'')+',\n    startDate: '+JSON.stringify(d.startDate||'')+',\n    endDate: '+JSON.stringify(d.endDate||'')+',\n    lineManagerEmail: '+JSON.stringify(d.lineManagerEmail||'')+',\n    equivalentUser: '+JSON.stringify(d.equivalentUser||'')+',\n    requiresLaptop: '+JSON.stringify(d.requiresLaptop||'')+',\n    requiresMobile: '+JSON.stringify(d.requiresMobile||'')+',\n    mailboxAccess: '+JSON.stringify(d.mailboxAccess||'')+',\n    mailboxAddresses: '+JSON.stringify(d.mailboxAddresses||'')+',\n    mailboxLevel: '+JSON.stringify(d.mailboxLevel||'')+'\n  };\n  function set(el,val){if(!el||!val)return;el.value=val;["input","change"].forEach(function(ev){el.dispatchEvent(new Event(ev,{bubbles:true}));});}\n  function byLabel(txt,val){document.querySelectorAll("label").forEach(function(l){if(l.textContent.toLowerCase().indexOf(txt.toLowerCase())!==-1){var t=l.htmlFor?document.getElementById(l.htmlFor):l.nextElementSibling;if(t)set(t,val);}});}\n  byLabel("title",data.title);byLabel("preferred",data.firstName);byLabel("first name",data.firstName);byLabel("forename",data.firstName);byLabel("surname",data.surname);byLabel("last name",data.surname);byLabel("job title",data.jobTitle);byLabel("department",data.department);byLabel("team name",data.teamName);byLabel("office location",data.officeLocation);byLabel("room number",data.roomNumber);byLabel("employment status",data.employmentStatus);byLabel("start date",data.startDate);byLabel("end date",data.endDate);byLabel("line manager",data.lineManagerEmail);byLabel("equivalent user",data.equivalentUser);byLabel("laptop",data.requiresLaptop);byLabel("mobile",data.requiresMobile);byLabel("mailbox access",data.mailboxAccess);byLabel("full email address",data.mailboxAddresses);byLabel("level of access",data.mailboxLevel);\n  console.log("%c✅ Autofill done — check fields before submitting","color:#4af0a0;font-weight:bold;font-size:13px");\n})();';
-    document.getElementById('codeArea').textContent = script;
+
+    // Build the self-contained bookmarklet payload with all data baked in.
+    // Uses exact label text visible on the Marval form screenshots.
+    // set()       — sets value + fires input/change events so Marval's framework notices
+    // setSelect() — sets a <select> by matching option text (case-insensitive)
+    // byLabel()   — finds input/select associated with a <label> containing txt
+    // setRadio()  — finds a radio button by its label text and checks it
+
+    var payload = '(function(){' +
+      'var d={' +
+        'title:' + JSON.stringify(d.title||'') + ',' +
+        'firstName:' + JSON.stringify(d.firstName||'') + ',' +
+        'surname:' + JSON.stringify(d.surname||'') + ',' +
+        'jobTitle:' + JSON.stringify(d.jobTitle||'') + ',' +
+        'department:' + JSON.stringify(d.department||'') + ',' +
+        'teamName:' + JSON.stringify(d.teamName||'') + ',' +
+        'officeLocation:' + JSON.stringify(d.officeLocation||'') + ',' +
+        'roomNumber:' + JSON.stringify(d.roomNumber||'') + ',' +
+        'employmentStatus:' + JSON.stringify(d.employmentStatus||'') + ',' +
+        'startDate:' + JSON.stringify(d.startDate||'') + ',' +
+        'endDate:' + JSON.stringify(d.endDate||'') + ',' +
+        'lineManagerEmail:' + JSON.stringify(d.lineManagerEmail||'') + ',' +
+        'equivalentUser:' + JSON.stringify(d.equivalentUser||'') + ',' +
+        'requiresLaptop:' + JSON.stringify(d.requiresLaptop||'') + ',' +
+        'requiresMobile:' + JSON.stringify(d.requiresMobile||'') + ',' +
+        'mailboxAddresses:' + JSON.stringify(d.mailboxAddresses||'') + ',' +
+        'mailboxLevel:' + JSON.stringify(d.mailboxLevel||'') +
+      '};' +
+      // ---- helpers ----
+      'function fire(el){["input","change"].forEach(function(e){el.dispatchEvent(new Event(e,{bubbles:true}));});}' +
+      'function set(el,val){if(!el||val===null||val===undefined||val==="")return;el.value=val;fire(el);}' +
+      'function setSelect(el,val){if(!el||!val)return;var v=val.toLowerCase();for(var i=0;i<el.options.length;i++){if(el.options[i].text.toLowerCase()===v){el.selectedIndex=i;fire(el);return;}}' +
+        // fallback: partial match
+        'for(var i=0;i<el.options.length;i++){if(el.options[i].text.toLowerCase().indexOf(v)!==-1){el.selectedIndex=i;fire(el);return;}}}' +
+      'function byLabel(txt,val,useSelect){if(!val)return;document.querySelectorAll("label").forEach(function(l){' +
+        'var lt=l.textContent.trim().toLowerCase();' +
+        'if(lt.indexOf(txt.toLowerCase())!==-1){' +
+          'var el=l.htmlFor?document.getElementById(l.htmlFor):l.nextElementSibling;' +
+          'if(!el)el=l.closest("div,td,li")&&l.closest("div,td,li").querySelector("input,select,textarea");' +
+          'if(el&&el.tagName==="SELECT"&&useSelect)setSelect(el,val);' +
+          'else if(el&&el.tagName!=="SELECT")set(el,val);}' +
+      '});}' +
+      'function setRadio(labelTxt,check){document.querySelectorAll("label").forEach(function(l){' +
+        'if(l.textContent.trim().toLowerCase()===labelTxt.toLowerCase()){' +
+          'var el=l.htmlFor?document.getElementById(l.htmlFor):l.querySelector("input[type=radio]");' +
+          'if(el&&el.type==="radio"){el.checked=check;fire(el);}}' +
+      '});}' +
+      // ---- Step 2: New Starter Details ----
+      'byLabel("Title",d.title,true);' +
+      'byLabel("First Name",d.firstName);' +
+      'byLabel("Surname",d.surname);' +
+      'byLabel("Job Title",d.jobTitle);' +
+      'byLabel("Department",d.department,true);' +
+      'byLabel("Team Name",d.teamName);' +
+      'byLabel("Office Location",d.officeLocation);' +
+      'byLabel("Room Number",d.roomNumber);' +
+      'byLabel("Employment Status",d.employmentStatus,true);' +
+      'byLabel("Expected Start Date",d.startDate);' +
+      'byLabel("Expected End Date",d.endDate);' +
+      // ---- Step 3: Line Manager Details ----
+      'byLabel("Line Manager\'s Email Address",d.lineManagerEmail);' +
+      // ---- Step 4: Account Privileges ----
+      'byLabel("Email Address of Equivalent User",d.equivalentUser);' +
+      'byLabel("Will your new starter require a laptop",d.requiresLaptop,true);' +
+      'byLabel("Will your new starter require a mobile",d.requiresMobile,true);' +
+      // ---- Step 5: Email Requirements ----
+      // Radio: "Is additional Outlook mailbox access required?" — default No unless mailboxAddresses present
+      '(function(){var need=d.mailboxAddresses&&d.mailboxAddresses.trim()?"yes":"no";' +
+        'document.querySelectorAll("input[type=radio]").forEach(function(r){' +
+          'var l=document.querySelector("label[for=\\""+r.id+"\\"]")||r.closest("label");' +
+          'var lTxt=(l?l.textContent:"").trim().toLowerCase();' +
+          'if(lTxt===need){r.checked=true;fire(r);}});' +
+        'if(need==="yes"){byLabel("Full email address of the mailbox",d.mailboxAddresses);byLabel("Level of Access",d.mailboxLevel,true);}' +
+      '})();' +
+      // ---- Toast ----
+      '(function(){var t=document.createElement("div");' +
+        't.textContent="\u2705 Marval autofill done \u2014 check fields before clicking Next Step";' +
+        't.style.cssText="position:fixed;bottom:24px;right:24px;background:#1a472a;color:#fff;padding:12px 18px;border-radius:8px;font:600 14px/1.4 sans-serif;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.3)";' +
+        'document.body.appendChild(t);setTimeout(function(){t.remove();},4000);' +
+      '})();' +
+    '})();';
+
+    var bookmarkletHref = 'javascript:' + encodeURIComponent(payload);
+    var link = document.getElementById('bookmarkletLink');
+    link.href = bookmarkletHref;
     document.getElementById('outputPanel').classList.add('visible');
     document.getElementById('outputPanel').scrollIntoView({behavior:'smooth',block:'start'});
-  }
-
-  function copyScript() {
-    navigator.clipboard.writeText(document.getElementById('codeArea').textContent).then(function() {
-      var btn = document.getElementById('copyBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-    });
   }
 
   function doReset() {
