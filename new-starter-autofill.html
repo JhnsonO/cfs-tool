@@ -218,7 +218,7 @@
       <div class="email-header">
         <span class="email-header-title">✉️ Manager Email</span>
         <div class="email-header-btns">
-          <button class="copy-btn" id="copyEmailBtn" onclick="copyEmail()">Copy Plain</button><button class="copy-btn" id="copyRichBtn" onclick="copyRichEmail()" style="margin-left:8px;">Copy Formatted ✨</button>
+          <button class="copy-btn" id="copyEmailBtn" onclick="copyEmail()">Copy Intro</button>
           <button class="outlook-btn" id="outlookBtn" onclick="openOutlook()">Open in Outlook →</button>
         </div>
       </div>
@@ -674,9 +674,13 @@
   }
 
   function copyEmail() {
-    navigator.clipboard.writeText(buildEmailBodyPlain()).then(function() {
+    var mgr = getManagerFirstName();
+    var name = getStarterFullName();
+    var date = getStartDate();
+    var snippet = 'Hello ' + mgr + ',\n\nWe have been advised by HR that your new member of staff ' + name + ' has been given a provisional start date of ' + date + '.';
+    navigator.clipboard.writeText(snippet).then(function() {
       var btn = document.getElementById('copyEmailBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy Plain'; btn.classList.remove('copied'); }, 2000);
+      setTimeout(function() { btn.textContent = 'Copy Intro'; btn.classList.remove('copied'); }, 2000);
     });
   }
 
