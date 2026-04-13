@@ -273,14 +273,30 @@
   }
 
   function parseDocument(text) {
-    var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+    // Strip image/WMF placeholders but keep trailing text on same line
+    // e.g. "Team Name ![](media/image3.wmf)Early Years Inclusion" -> "Team Name Early Years Inclusion"
+    var cleaned = text.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/[ \t]{2,}/g, ' ');
+    var lines = cleaned.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+
+    function junk(val) {
+      return !val || val.indexOf('Click or tap') !== -1 || val.indexOf('Choose an item') !== -1
+        || val.length > 200 || /^\*\*Please/.test(val) || /^\d+\./.test(val)
+        || /^\*\*This form/.test(val) || /^\*\*User login/.test(val);
+    }
+
     function extractTableValue(patterns) {
       for (var pi = 0; pi < patterns.length; pi++) {
         for (var i = 0; i < lines.length; i++) {
-          if (patterns[pi].test(lines[i])) {
+          var line = lines[i];
+          var m = line.match(patterns[pi]);
+          if (m) {
+            // 1) Inline: text after the label on the same line
+            var after = line.slice(m.index + m[0].length).replace(/^[\s:]+/, '').trim();
+            if (after && !junk(after)) return after;
+            // 2) Next-line fallback
             for (var j = i + 1; j < Math.min(i + 5, lines.length); j++) {
               var val = lines[j].trim();
-              if (val && val.indexOf('Click or tap') === -1 && val.indexOf('Choose an item') === -1 && val.length < 200 && !/^\*\*Please/.test(val) && !/^\d+\./.test(val)) return val;
+              if (!junk(val)) return val;
             }
           }
         }
@@ -293,15 +309,15 @@
       return str;
     }
     var d = {};
-    d.title = extractTableValue([/^Title$/i]); if (d.title && d.title.length > 10) d.title = '';
-    d.firstName = extractTableValue([/^First name$/i]);
-    d.surname = extractTableValue([/^Surname$/i]);
-    d.jobTitle = extractTableValue([/^Job title$/i]);
-    d.department = extractTableValue([/^Department$/i]);
-    d.teamName = extractTableValue([/^Team name$/i]);
-    d.officeLocation = extractTableValue([/^Office location$/i]);
-    d.roomNumber = extractTableValue([/^Room number$/i]);
-    d.employmentStatus = extractTableValue([/^Employment status$/i]);
+    d.title = extractTableValue([/^Title\b/i]); if (d.title && d.title.length > 10) d.title = '';
+    d.firstName = extractTableValue([/^First name\b/i]);
+    d.surname = extractTableValue([/^Surname\b/i]);
+    d.jobTitle = extractTableValue([/^Job title\b/i]);
+    d.department = extractTableValue([/^Department\b/i]);
+    d.teamName = extractTableValue([/^Team name\b/i]);
+    d.officeLocation = extractTableValue([/^Office location\b/i]);
+    d.roomNumber = extractTableValue([/^Room number\b/i]);
+    d.employmentStatus = extractTableValue([/^Employment status\b/i]);
     var rs = extractTableValue([/^Expected start date$/i]); d.startDate = rs ? normaliseDate(rs) : '';
     var re = extractTableValue([/^Expected end date$/i]); d.endDate = (re && re.indexOf('Click') === -1) ? normaliseDate(re) : '';
     d.lineManagerEmail = extractTableValue([/Line Manager.s email/i]);
