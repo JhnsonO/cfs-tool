@@ -1011,7 +1011,7 @@ function buildEmail(data) {
   if(t.biTeam==='SENA'){ to=s.senaInbox||''; cc=s.senaCc||''; }
   else if(t.biTeam==='CSC'){ to=s.cscInbox||''; cc=s.cscCc||''; }
   const subj=`FOI ${data.reqNum} ${data.subject}`;
-  const body=`Please respond within 3 working days.\n\nPlease access this FOI at the Planner - Information & Audit Management FOI\nIf you do not accept this FOI, reply to this email to confirm.\nIf you do accept this FOI, please assign it to the relevant individual in your team\nPlease remember to comment on the task for further notifications`;
+  const body=`FOI ${data.reqNum} - Please confirm you can answer this FOI (or suggest where it needs to be sent) in the next 3 working days. Added to Planner.\n\nPlease respond within 3 working days.\n\nPlease access this FOI at the Planner - Information & Audit Management FOI\nIf you do not accept this FOI, reply to this email to confirm.\nIf you do accept this FOI, please assign it to the relevant individual in your team\nPlease remember to comment on the task for further notifications`;
   document.getElementById('emailTo').value=to||'(Set BI inbox in Settings)';
   document.getElementById('emailCC').value=cc||'';
   document.getElementById('emailSubject').value=subj;
