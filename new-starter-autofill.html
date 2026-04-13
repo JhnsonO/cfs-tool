@@ -634,10 +634,10 @@
     return '<p>Hello <strong>' + mgr + '</strong>,</p>'
       + '<p>We have been advised by HR that your new member of staff <strong>' + name + '</strong> has been given a <u><strong>provisional start date</strong></u> of <strong>' + date + '</strong></p>'
       + '<p>Please find attached the new starter form that HR have pre-populated with the information that they have. Please could you complete /amend any of the information that is missing or incorrect and return it to <a href="mailto:IM&T-Generic@leics.gov.uk">IM&amp;T-Generic@leics.gov.uk</a>.</p>'
-      + '<p style="background:#ffff00;font-weight:bold;"><strong>Please Note: This is only a <u>provisional start date</u> used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.</strong></p>'
+      + '<p><span style="background-color:#ffff00;mso-highlight:yellow;font-weight:bold;display:inline-block;width:100%;"><strong>Please Note: This is only a <u>provisional start date</u> used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.</strong></span></p>'
       + '<p><strong>If you have any questions or queries regarding this, please contact the HR team on <a href="mailto:CFSBusinessSupport-HR@leics.gov.uk">CFSBusinessSupport-HR@leics.gov.uk</a></strong></p>'
       + '<p>If your new member of staff is transferring from another team / department (i.e. already works for Leicestershire County Council) please let us know as a different form will need to be completed.</p>'
-      + '<p style="background:#00ffff;"><strong>Please can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.</strong></p>'
+      + '<p><span style="background-color:#00ffff;mso-highlight:cyan;font-weight:bold;display:inline-block;width:100%;"><strong>Please can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.</strong></span></p>'
       + '<p style="color:#cc0000;font-weight:bold;"><strong>Please do not raise this request on Marval yourself. All new starters are to be set up by IM&amp;T to ensure a central process is followed.</strong></p>'
       + '<p>Thank you</p>';
   }
@@ -681,7 +681,12 @@
   }
 
   function copyRichEmail() {
-    var html = buildEmailBodyHtml();
+    var inner = buildEmailBodyHtml();
+    var html = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+      + '<head><meta charset="utf-8"><style>'
+      + 'body{font-family:Calibri,sans-serif;font-size:11pt;}'
+      + 'p{margin:0 0 12pt 0;}'
+      + '</style></head><body>' + inner + '</body></html>';
     var blob = new Blob([html], { type: 'text/html' });
     var plain = buildEmailBodyPlain();
     var plainBlob = new Blob([plain], { type: 'text/plain' });
@@ -709,3 +714,4 @@
 </script>
 </body>
 </html>
+
