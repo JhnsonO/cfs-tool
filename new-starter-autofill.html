@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Starter Autofill</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ef; --surface: #ffffff; --border: #e0dbd2; --border2: #ccc7bc;
+    --accent: #1a472a; --accent-light: #e8f5ed; --accent2: #c8a84b;
+    --text: #1c1a17; --muted: #7a7468; --danger: #c0392b; --success: #1a6b3a;
+    --radius: 8px; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; padding: 40px 16px 60px; }
+  .container { max-width: 680px; margin: 0 auto; }
+  .header { margin-bottom: 32px; }
+  .header-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 6px; }
+  .header h1 { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: var(--accent); letter-spacing: -0.3px; }
+  .council-tag { font-family: 'DM Mono', monospace; font-size: 10px; background: var(--accent); color: white; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.8px; text-transform: uppercase; }
+  .header-sub { color: var(--muted); font-size: 13px; font-weight: 300; }
+  .drop-zone { border: 2px dashed var(--border2); border-radius: var(--radius); background: var(--surface); padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 24px; position: relative; }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: var(--accent-light); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 36px; margin-bottom: 12px; display: block; transition: transform 0.2s; }
+  .drop-zone:hover .drop-icon { transform: translateY(-3px); }
+  .drop-zone h2 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .drop-zone p { font-size: 12px; color: var(--muted); }
+  .drop-zone.success { border-color: var(--success); background: #f0faf3; border-style: solid; }
+  .drop-zone.has-error { border-color: var(--danger); background: #fdf3f2; border-style: solid; }
+  .status-bar { display: none; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .status-bar.visible { display: flex; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.green { background: var(--success); } .status-dot.red { background: var(--danger); } .status-dot.amber { background: var(--accent2); }
+  .status-text { flex: 1; color: var(--text); } .status-file { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .fields-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; overflow: hidden; box-shadow: var(--shadow); }
+  .fields-panel.visible { display: block; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); background: #faf9f7; }
+  .panel-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .field-count { font-family: 'DM Mono', monospace; font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 20px; border: 1px solid rgba(26,71,42,0.2); }
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .field-item { padding: 12px 18px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .field-item:nth-child(even) { border-right: none; } .field-item.full-width { grid-column: 1 / -1; border-right: none; } .field-item.empty .field-val { color: var(--border2); font-style: italic; }
+  .field-key { font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  .field-val { font-size: 13px; font-weight: 500; color: var(--text); word-break: break-word; }
+  .gen-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 15px; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-bottom: 20px; display: none; }
+  .gen-btn.visible { display: block; } .gen-btn:hover { background: #143d22; } .gen-btn:active { transform: scale(0.99); }
+  .output-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .output-panel.visible { display: block; }
+  .output-header { padding: 14px 18px; border-bottom: 1px solid var(--border); background: #1a472a; display: flex; align-items: center; justify-content: space-between; }
+  .output-header-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+  .copy-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; padding: 5px 12px; cursor: pointer; transition: background 0.15s; letter-spacing: 0.5px; }
+  .copy-btn:hover { background: rgba(255,255,255,0.25); } .copy-btn.copied { background: rgba(200,168,75,0.4); border-color: var(--accent2); color: var(--accent2); }
+  .instructions { padding: 16px 18px; border-bottom: 1px solid var(--border); background: #faf9f7; }
+  .instructions ol { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 8px; }
+  .instructions li { counter-increment: steps; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text); line-height: 1.5; }
+  .instructions li::before { content: counter(steps); background: var(--accent); color: white; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  kbd { background: var(--bg); border: 1px solid var(--border2); border-radius: 3px; font-family: 'DM Mono', monospace; font-size: 11px; padding: 1px 5px; color: var(--text); }
+  .code-area { padding: 16px 18px; background: #101510; font-family: 'DM Mono', monospace; font-size: 11px; color: #7dda9a; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto; line-height: 1.7; }
+  .note { padding: 12px 18px; background: #fffbf0; border-top: 1px solid #f0e8cc; font-size: 12px; color: #7a6520; line-height: 1.5; }
+  .reset-btn { background: none; border: 1px solid var(--border2); color: var(--muted); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 8px 14px; cursor: pointer; margin-top: 16px; transition: color 0.15s, border-color 0.15s; }
+  .reset-btn:hover { color: var(--text); border-color: var(--text); }
+  @media (max-width: 520px) { .fields-grid { grid-template-columns: 1fr; } .field-item { border-right: none; } .field-item:last-child { border-bottom: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-top"><h1>New Starter Autofill</h1><span class="council-tag">LCC ICT</span></div>
+    <p class="header-sub">Drop the Word doc — the script writes itself. Nothing leaves your computer.</p>
+  </div>
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".docx">
+    <span class="drop-icon">📄</span>
+    <h2>Drop your New Starter .docx here</h2>
+    <p>or click to browse</p>
+  </div>
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-text" id="statusText"></div>
+    <div class="status-file" id="statusFile"></div>
+  </div>
+  <div class="fields-panel" id="fieldsPanel">
+    <div class="panel-header"><span class="panel-title">Extracted Fields</span><span class="field-count" id="fieldCount">0 fields</span></div>
+    <div class="fields-grid" id="fieldsGrid"></div>
+  </div>
+  <button class="gen-btn" id="genBtn" onclick="generateScript()">Generate Autofill Script →</button>
+  <div class="output-panel" id="outputPanel">
+    <div class="output-header"><span class="output-header-title">Console Script</span><button class="copy-btn" id="copyBtn" onclick="copyScript()">Copy</button></div>
+    <div class="instructions">
+      <ol>
+        <li>Open the council new starter form and log in as normal</li>
+        <li>Press <kbd>F12</kbd> to open DevTools, then click the <kbd>Console</kbd> tab</li>
+        <li>Paste the script and press <kbd>Enter</kbd> — fields fill automatically</li>
+      </ol>
+    </div>
+    <div class="code-area" id="codeArea"></div>
+    <div class="note">If some fields don't fill, the council form field names may differ. Send a screenshot and the script can be tuned to match exactly.</div>
+  </div>
+  <button class="reset-btn" id="resetBtn" onclick="doReset()" style="display:none">↩ Upload a different document</button>
+</div>
+<script>
+  var parsedData = {};
+  var dropZone = document.getElementById('dropZone');
+  var fileInput = document.getElementById('fileInput');
+  dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+  dropZone.addEventListener('drop', function(e) { e.preventDefault(); dropZone.classList.remove('dragover'); var file = e.dataTransfer.files[0]; if (file) processFile(file); });
+  fileInput.addEventListener('change', function() { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+  function processFile(file) {
+    if (!file.name.toLowerCase().endsWith('.docx')) { showStatus('red', 'Please upload a .docx file', file.name); dropZone.classList.add('has-error'); return; }
+    showStatus('amber', 'Reading document…', file.name);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      mammoth.extractRawText({ arrayBuffer: e.target.result }).then(function(result) {
+        parsedData = parseDocument(result.value);
+        var count = Object.values(parsedData).filter(function(v) { return v; }).length;
+        if (count === 0) { showStatus('red', 'Could not extract fields — is this the right document?', file.name); dropZone.classList.add('has-error'); }
+        else {
+          showStatus('green', 'Extracted ' + count + ' fields successfully', file.name);
+          dropZone.classList.add('success');
+          dropZone.querySelector('h2').textContent = '✓ ' + file.name;
+          dropZone.querySelector('p').textContent = 'Click to upload a different file';
+          renderFields(parsedData);
+          document.getElementById('genBtn').classList.add('visible');
+          document.getElementById('resetBtn').style.display = 'inline-block';
+        }
+      }).catch(function() { showStatus('red', 'Failed to read document', file.name); });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  function parseDocument(text) {
+    var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+    function extractTableValue(patterns) {
+      for (var pi = 0; pi < patterns.length; pi++) {
+        for (var i = 0; i < lines.length; i++) {
+          if (patterns[pi].test(lines[i])) {
+            for (var j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+              var val = lines[j].trim();
+              if (val && val.indexOf('Click or tap') === -1 && val.indexOf('Choose an item') === -1 && val.length < 200 && !/^\*\*Please/.test(val) && !/^\d+\./.test(val)) return val;
+            }
+          }
+        }
+      }
+      return '';
+    }
+    function normaliseDate(str) {
+      var m = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+      if (m) { var y = m[3].length === 2 ? '20'+m[3] : m[3]; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+      return str;
+    }
+    var d = {};
+    d.title = extractTableValue([/^Title$/i]); if (d.title && d.title.length > 10) d.title = '';
+    d.firstName = extractTableValue([/^First name$/i]);
+    d.surname = extractTableValue([/^Surname$/i]);
+    d.jobTitle = extractTableValue([/^Job title$/i]);
+    d.department = extractTableValue([/^Department$/i]);
+    d.teamName = extractTableValue([/^Team name$/i]);
+    d.officeLocation = extractTableValue([/^Office location$/i]);
+    d.roomNumber = extractTableValue([/^Room number$/i]);
+    d.employmentStatus = extractTableValue([/^Employment status$/i]);
+    var rs = extractTableValue([/^Expected start date$/i]); d.startDate = rs ? normaliseDate(rs) : '';
+    var re = extractTableValue([/^Expected end date$/i]); d.endDate = (re && re.indexOf('Click') === -1) ? normaliseDate(re) : '';
+    d.lineManagerEmail = extractTableValue([/Line Manager.s email/i]);
+    d.equivalentUser = extractTableValue([/Email address of equivalent user/i]);
+    var lp = extractTableValue([/Will your new starter require a laptop/i]); d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
+    var mb = extractTableValue([/Will your new starter require a mobile/i]); d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
+    var mx = extractTableValue([/additional Outlook mailbox/i]); d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : 'No';
+    d.mailboxAddresses = extractTableValue([/Full email address.s. of the mailbox/i]);
+    d.mailboxLevel = extractTableValue([/Level of access/i]);
+    return d;
+  }
+  var FIELD_LABELS = { title:'Title', firstName:'First Name', surname:'Surname', jobTitle:'Job Title', department:'Department', teamName:'Team', officeLocation:'Office Location', roomNumber:'Room', employmentStatus:'Employment', startDate:'Start Date', endDate:'End Date', lineManagerEmail:'Line Manager Email', equivalentUser:'Equivalent User', requiresLaptop:'Laptop?', requiresMobile:'Mobile?', mailboxAccess:'Extra Mailbox?', mailboxAddresses:'Mailbox Address', mailboxLevel:'Access Level' };
+  var WIDE_FIELDS = ['jobTitle','lineManagerEmail','equivalentUser','mailboxAddresses'];
+  function renderFields(data) {
+    var grid = document.getElementById('fieldsGrid'); grid.innerHTML = '';
+    var count = 0; var keys = Object.keys(FIELD_LABELS);
+    for (var ki = 0; ki < keys.length; ki++) {
+      var key = keys[ki]; var val = data[key]; var isEmpty = !val;
+      var item = document.createElement('div');
+      item.className = 'field-item'+(isEmpty?' empty':'')+(WIDE_FIELDS.indexOf(key)!==-1?' full-width':'');
+      item.innerHTML = '<div class="field-key">'+FIELD_LABELS[key]+'</div><div class="field-val">'+(val||'—')+'</div>';
+      grid.appendChild(item); if (val) count++;
+    }
+    document.getElementById('fieldCount').textContent = count + ' fields';
+    document.getElementById('fieldsPanel').classList.add('visible');
+  }
+  function showStatus(color, text, file) {
+    document.getElementById('statusDot').className = 'status-dot '+color;
+    document.getElementById('statusText').textContent = text;
+    document.getElementById('statusFile').textContent = file||'';
+    document.getElementById('statusBar').classList.add('visible');
+  }
+  function generateScript() {
+    var d = parsedData;
+    var script = '(function() {\n  var data = {\n    title: '+JSON.stringify(d.title||'')+',\n    firstName: '+JSON.stringify(d.firstName||'')+',\n    surname: '+JSON.stringify(d.surname||'')+',\n    jobTitle: '+JSON.stringify(d.jobTitle||'')+',\n    department: '+JSON.stringify(d.department||'')+',\n    teamName: '+JSON.stringify(d.teamName||'')+',\n    officeLocation: '+JSON.stringify(d.officeLocation||'')+',\n    roomNumber: '+JSON.stringify(d.roomNumber||'')+',\n    employmentStatus: '+JSON.stringify(d.employmentStatus||'')+',\n    startDate: '+JSON.stringify(d.startDate||'')+',\n    endDate: '+JSON.stringify(d.endDate||'')+',\n    lineManagerEmail: '+JSON.stringify(d.lineManagerEmail||'')+',\n    equivalentUser: '+JSON.stringify(d.equivalentUser||'')+',\n    requiresLaptop: '+JSON.stringify(d.requiresLaptop||'')+',\n    requiresMobile: '+JSON.stringify(d.requiresMobile||'')+',\n    mailboxAccess: '+JSON.stringify(d.mailboxAccess||'')+',\n    mailboxAddresses: '+JSON.stringify(d.mailboxAddresses||'')+',\n    mailboxLevel: '+JSON.stringify(d.mailboxLevel||'')+'\n  };\n  function set(el,val){if(!el||!val)return;el.value=val;["input","change"].forEach(function(ev){el.dispatchEvent(new Event(ev,{bubbles:true}));});}\n  function byLabel(txt,val){document.querySelectorAll("label").forEach(function(l){if(l.textContent.toLowerCase().indexOf(txt.toLowerCase())!==-1){var t=l.htmlFor?document.getElementById(l.htmlFor):l.nextElementSibling;if(t)set(t,val);}});}\n  byLabel("title",data.title);byLabel("preferred",data.firstName);byLabel("first name",data.firstName);byLabel("forename",data.firstName);byLabel("surname",data.surname);byLabel("last name",data.surname);byLabel("job title",data.jobTitle);byLabel("department",data.department);byLabel("team name",data.teamName);byLabel("office location",data.officeLocation);byLabel("room number",data.roomNumber);byLabel("employment status",data.employmentStatus);byLabel("start date",data.startDate);byLabel("end date",data.endDate);byLabel("line manager",data.lineManagerEmail);byLabel("equivalent user",data.equivalentUser);byLabel("laptop",data.requiresLaptop);byLabel("mobile",data.requiresMobile);byLabel("mailbox access",data.mailboxAccess);byLabel("full email address",data.mailboxAddresses);byLabel("level of access",data.mailboxLevel);\n  console.log("%c✅ Autofill done — check fields before submitting","color:#4af0a0;font-weight:bold;font-size:13px");\n})();';
+    document.getElementById('codeArea').textContent = script;
+    document.getElementById('outputPanel').classList.add('visible');
+    document.getElementById('outputPanel').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function copyScript() {
+    navigator.clipboard.writeText(document.getElementById('codeArea').textContent).then(function() {
+      var btn = document.getElementById('copyBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+  function doReset() {
+    parsedData = {}; dropZone.className = 'drop-zone';
+    dropZone.querySelector('h2').textContent = 'Drop your New Starter .docx here';
+    dropZone.querySelector('p').textContent = 'or click to browse';
+    document.getElementById('statusBar').classList.remove('visible');
+    document.getElementById('fieldsPanel').classList.remove('visible');
+    document.getElementById('genBtn').classList.remove('visible');
+    document.getElementById('outputPanel').classList.remove('visible');
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+  }
+</script>
+</body>
+</html>
