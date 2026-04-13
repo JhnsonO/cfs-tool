@@ -22,7 +22,7 @@
   .council-tag { font-family: 'DM Mono', monospace; font-size: 10px; background: var(--accent); color: white; padding: 3px 8px; border-radius: 3px; letter-spacing: 0.8px; text-transform: uppercase; }
   .header-sub { color: var(--muted); font-size: 13px; font-weight: 300; }
   .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; }
-  .tab-btn { flex: 1; background: none; border: none; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); padding: 9px 12px; cursor: pointer; transition: all 0.15s; }
+  .tab-btn { flex: 1; background: none; border: none; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); padding: 9px 8px; cursor: pointer; transition: all 0.15s; }
   .tab-btn.active { background: var(--accent); color: white; }
   .tab-btn:hover:not(.active) { background: var(--accent-light); color: var(--accent); }
   .tab-panel { display: none; }
@@ -57,7 +57,7 @@
   .output-panel.visible { display: block; }
   .output-header { padding: 14px 18px; border-bottom: 1px solid var(--border); background: #1a472a; display: flex; align-items: center; justify-content: space-between; }
   .output-header-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
-  .copy-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; padding: 5px 12px; cursor: pointer; transition: background 0.15s; letter-spacing: 0.5px; }
+  .copy-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; padding: 5px 12px; cursor: pointer; transition: background 0.15s; letter-spacing: 0.5px; white-space: nowrap; }
   .copy-btn:hover { background: rgba(255,255,255,0.25); } .copy-btn.copied { background: rgba(200,168,75,0.4); border-color: var(--accent2); color: var(--accent2); }
   .instructions { padding: 16px 18px; border-bottom: 1px solid var(--border); background: #faf9f7; }
   .instructions ol { list-style: none; counter-reset: steps; display: flex; flex-direction: column; gap: 8px; }
@@ -89,6 +89,28 @@
   .log-table td.empty { color: var(--border2); font-style: italic; font-size: 12px; }
   .log-hint { padding: 10px 18px; background: #faf9f7; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
 
+  /* Email tab */
+  .email-no-data { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 24px; text-align: center; }
+  .email-no-data.visible { display: block; }
+  .email-no-data p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .email-no-data strong { color: var(--text); }
+  .email-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .email-panel.visible { display: block; }
+  .email-header { padding: 14px 18px; background: var(--accent); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .email-header-title { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+  .email-header-btns { display: flex; gap: 8px; }
+  .email-meta { padding: 0; border-bottom: 1px solid var(--border); }
+  .email-meta-row { display: flex; align-items: baseline; gap: 0; border-bottom: 1px solid var(--border); }
+  .email-meta-row:last-child { border-bottom: none; }
+  .email-meta-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); padding: 10px 14px; width: 70px; flex-shrink: 0; }
+  .email-meta-val { font-size: 13px; color: var(--text); padding: 10px 14px 10px 0; flex: 1; word-break: break-all; }
+  .email-body { padding: 20px 22px; font-size: 13px; color: var(--text); line-height: 1.8; border-top: 1px solid var(--border); white-space: pre-wrap; }
+  .email-body .highlight-yellow { background: #fff59d; padding: 2px 4px; border-radius: 2px; font-weight: 600; }
+  .email-body .highlight-cyan { background: #b2ebf2; padding: 2px 4px; border-radius: 2px; font-weight: 600; }
+  .email-body .highlight-red { color: var(--danger); font-weight: 600; }
+  .outlook-btn { background: #0078d4; border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; padding: 5px 12px; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .outlook-btn:hover { background: #006cbe; }
+
   @media (max-width: 520px) { .fields-grid { grid-template-columns: 1fr; } .field-item { border-right: none; } }
 </style>
 </head>
@@ -96,12 +118,13 @@
 <div class="container">
   <div class="header">
     <div class="header-top"><h1>New Starter Autofill</h1><span class="council-tag">LCC ICT</span></div>
-    <p class="header-sub">Autofill the Marval form from a Word doc. Generate log rows from the confirmation page.</p>
+    <p class="header-sub">Autofill the Marval form · Generate log rows · Draft the manager email.</p>
   </div>
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('autofill', this)">📄 Autofill Form</button>
     <button class="tab-btn" onclick="switchTab('logs', this)">📋 Log Rows</button>
+    <button class="tab-btn" onclick="switchTab('email', this)">✉️ Manager Email</button>
   </div>
 
   <!-- ── AUTOFILL TAB ── -->
@@ -140,42 +163,57 @@
 
   <!-- ── LOG ROWS TAB ── -->
   <div class="tab-panel" id="tab-logs">
-    <p class="log-intro">After submitting on Marval, open the confirmation page (like <em>SRV-909583</em>), press <kbd>Ctrl+A</kbd> then <kbd>Ctrl+C</kbd>, and paste below. You'll get ready-to-paste rows for both spreadsheets.</p>
+    <p class="log-intro">After submitting on Marval, open the confirmation page (e.g. <em>SRV-909583</em>), press <kbd>Ctrl+A</kbd> then <kbd>Ctrl+C</kbd>, and paste below.</p>
     <textarea class="log-paste-area" id="logPasteArea" placeholder="Paste Marval confirmation page text here…"></textarea>
     <button class="parse-btn" onclick="parseLogRows()">Generate Log Rows →</button>
-
     <div class="log-results" id="logResults">
-
       <div class="log-row-panel">
         <div class="log-row-header">
           <span class="log-row-title">📊 IT Tracker</span>
           <button class="copy-btn" id="copyIT" onclick="copyRow('it')">Copy Row</button>
         </div>
         <table class="log-table">
-          <tr>
-            <th>IT Ref No</th><th>New Starter Name</th><th>Start Date</th><th>Equipment</th><th>Completed By</th><th>Manager's Name</th>
-          </tr>
+          <tr><th>IT Ref No</th><th>New Starter Name</th><th>Start Date</th><th>Equipment</th><th>Completed By</th><th>Manager's Name</th></tr>
           <tr id="itRow"></tr>
         </table>
         <div class="log-hint">Paste into IT Tracker — columns A–F. "Completed By" left blank — fill with your name.</div>
       </div>
-
       <div class="log-row-panel">
         <div class="log-row-header">
           <span class="log-row-title">📋 New Starter Chasers</span>
           <button class="copy-btn" id="copyChaser" onclick="copyRow('chaser')">Copy Row</button>
         </div>
         <table class="log-table">
-          <tr>
-            <th>New Starter Name</th><th>Provisional Start Date</th><th>Manager</th><th>ID Photo Given</th><th>Date Sent to Manager</th>
-          </tr>
+          <tr><th>New Starter Name</th><th>Provisional Start Date</th><th>Manager</th><th>ID Photo Given</th><th>Date Sent to Manager</th></tr>
           <tr id="chaserRow"></tr>
         </table>
         <div class="log-hint">Paste into New Starter Chasers — columns A–E. ID Photo and Date Sent left blank to fill later.</div>
       </div>
-
     </div>
   </div>
+
+  <!-- ── EMAIL TAB ── -->
+  <div class="tab-panel" id="tab-email">
+    <div class="email-no-data" id="emailNoData">
+      <p>No form loaded yet.<br><strong>Drop a .docx on the Autofill tab first</strong> — the email will auto-populate from the extracted fields.</p>
+    </div>
+    <div class="email-panel" id="emailPanel">
+      <div class="email-header">
+        <span class="email-header-title">✉️ Manager Email</span>
+        <div class="email-header-btns">
+          <button class="copy-btn" id="copyEmailBtn" onclick="copyEmail()">Copy Body</button>
+          <button class="outlook-btn" id="outlookBtn" onclick="openOutlook()">Open in Outlook →</button>
+        </div>
+      </div>
+      <div class="email-meta">
+        <div class="email-meta-row"><span class="email-meta-label">To</span><span class="email-meta-val" id="emailTo">—</span></div>
+        <div class="email-meta-row"><span class="email-meta-label">Subject</span><span class="email-meta-val" id="emailSubject">—</span></div>
+        <div class="email-meta-row"><span class="email-meta-label">Attach</span><span class="email-meta-val" style="color:var(--accent2);font-size:12px;">⚠ Remember to attach the new starter form .docx before sending</span></div>
+      </div>
+      <div class="email-body" id="emailBody"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -187,6 +225,7 @@
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
+    if (name === 'email') renderEmail();
   }
 
   // ── AUTOFILL ──
@@ -317,81 +356,101 @@
   function parseLogRows() {
     var raw = document.getElementById('logPasteArea').value;
     if (!raw.trim()) return;
-
-    function extract(pattern, fallback) {
-      var m = raw.match(pattern);
-      return m ? m[1].trim() : (fallback || '');
-    }
-
-    // SRV ref
+    function extract(pattern, fallback) { var m = raw.match(pattern); return m ? m[1].trim() : (fallback || ''); }
     var srvRef = extract(/\b(SRV-\d+)\b/);
-
-    // Name
     var firstName = extract(/First Name\s*:\s*([^\n\r]+)/);
     var surname = extract(/Surname\s*:\s*([^\n\r]+)/);
     var fullName = (firstName + ' ' + surname).trim();
-
-    // Start date — strip time if present
-    var startRaw = extract(/Expected Start Date\s*:\s*(\d{2}\/\d{2}\/\d{4})/);
-    var startDate = startRaw || '';
-
-    // Equipment
+    var startDate = extract(/Expected Start Date\s*:\s*(\d{2}\/\d{2}\/\d{4})/);
     var laptop = /require a laptop\?\s*:\s*Yes/i.test(raw);
     var mobile = /require a mobile phone\?\s*:\s*Yes/i.test(raw);
     var equipment = laptop && mobile ? 'Laptop and Smartphone' : laptop ? 'Laptop' : mobile ? 'Smartphone' : '';
-
-    // Manager name — derive from email
     var managerEmail = extract(/Line Manager(?:'s|.s) Email Address\s*:\s*([^\s\n\r]+)/);
     var managerName = '';
     if (managerEmail) {
-      var localPart = managerEmail.split('@')[0];
-      managerName = localPart.split('.').map(function(p) {
-        return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-      }).join(' ');
+      managerName = managerEmail.split('@')[0].split('.').map(function(p) { return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(); }).join(' ');
     }
-
-    logData = { srvRef: srvRef, fullName: fullName, startDate: startDate, equipment: equipment, managerName: managerName };
-
-    // Render IT tracker
+    logData = { srvRef: srvRef, fullName: fullName, startDate: startDate, equipment: equipment, managerName: managerName, managerEmail: managerEmail };
     var itCells = [srvRef, fullName, startDate, equipment, '', managerName];
-    var itRow = document.getElementById('itRow');
-    itRow.innerHTML = '';
-    itCells.forEach(function(val) {
-      var td = document.createElement('td');
-      td.className = val ? '' : 'empty';
-      td.textContent = val || '(fill manually)';
-      itRow.appendChild(td);
-    });
-
-    // Render chasers
+    var itRow = document.getElementById('itRow'); itRow.innerHTML = '';
+    itCells.forEach(function(val) { var td = document.createElement('td'); td.className = val ? '' : 'empty'; td.textContent = val || '(fill manually)'; itRow.appendChild(td); });
     var chaserCells = [fullName, startDate, managerName, '', ''];
-    var chaserRow = document.getElementById('chaserRow');
-    chaserRow.innerHTML = '';
-    chaserCells.forEach(function(val) {
-      var td = document.createElement('td');
-      td.className = val ? '' : 'empty';
-      td.textContent = val || '(fill later)';
-      chaserRow.appendChild(td);
-    });
-
+    var chaserRow = document.getElementById('chaserRow'); chaserRow.innerHTML = '';
+    chaserCells.forEach(function(val) { var td = document.createElement('td'); td.className = val ? '' : 'empty'; td.textContent = val || '(fill later)'; chaserRow.appendChild(td); });
     document.getElementById('logResults').classList.add('visible');
     document.getElementById('logResults').scrollIntoView({behavior:'smooth', block:'start'});
   }
 
   function copyRow(type) {
     var vals, btnId;
-    if (type === 'it') {
-      vals = [logData.srvRef, logData.fullName, logData.startDate, logData.equipment, '', logData.managerName];
-      btnId = 'copyIT';
-    } else {
-      vals = [logData.fullName, logData.startDate, logData.managerName, '', ''];
-      btnId = 'copyChaser';
-    }
+    if (type === 'it') { vals = [logData.srvRef, logData.fullName, logData.startDate, logData.equipment, '', logData.managerName]; btnId = 'copyIT'; }
+    else { vals = [logData.fullName, logData.startDate, logData.managerName, '', '']; btnId = 'copyChaser'; }
     navigator.clipboard.writeText(vals.join('\t')).then(function() {
-      var btn = document.getElementById(btnId);
-      btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      var btn = document.getElementById(btnId); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy Row'; btn.classList.remove('copied'); }, 2000);
     });
+  }
+
+  // ── EMAIL ──
+  function getManagerFirstName() {
+    var email = parsedData.lineManagerEmail || '';
+    if (!email) return '[Manager Name]';
+    var local = email.split('@')[0];
+    var parts = local.split('.');
+    return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+  }
+
+  function getStarterFullName() {
+    var fn = parsedData.firstName || '';
+    var sn = parsedData.surname || '';
+    return (fn + ' ' + sn).trim() || '[Name]';
+  }
+
+  function getStartDate() {
+    // Convert YYYY-MM-DD back to DD/MM/YYYY for display in email
+    var d = parsedData.startDate || '';
+    if (!d) return '[Provisional Date]';
+    var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[3] + '/' + m[2] + '/' + m[1];
+    return d;
+  }
+
+  function buildEmailBody() {
+    var mgr = getManagerFirstName();
+    var name = getStarterFullName();
+    var date = getStartDate();
+    return 'Hello ' + mgr + ',\n\nWe have been advised by HR that your new member of staff ' + name + ' has been given a provisional start date of ' + date + '\n\nPlease find attached the new starter form that HR have pre-populated with the information that they have. Please could you complete/amend any of the information that is missing or incorrect and return it to IM&T-Generic@leics.gov.uk.\n\nPlease Note: This is only a provisional start date used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.\n\nIf you have any questions or queries regarding this, please contact the HR team on CFSBusinessSupport-HR@leics.gov.uk\n\nIf your new member of staff is transferring from another team / department (i.e. already works for Leicestershire County Council) please let us know as a different form will need to be completed.\n\nPlease can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.\n\nPlease do not raise this request on Marval yourself. All new starters are to be set up by IM&T to ensure a central process is followed.\n\nThank you';
+  }
+
+  function renderEmail() {
+    var hasData = parsedData.firstName || parsedData.surname || parsedData.lineManagerEmail;
+    if (!hasData) {
+      document.getElementById('emailNoData').classList.add('visible');
+      document.getElementById('emailPanel').classList.remove('visible');
+      return;
+    }
+    document.getElementById('emailNoData').classList.remove('visible');
+    document.getElementById('emailPanel').classList.add('visible');
+    var toEmail = parsedData.lineManagerEmail || '';
+    var starterName = getStarterFullName();
+    var subject = 'New Starter - ' + starterName;
+    document.getElementById('emailTo').textContent = toEmail || '(no manager email found)';
+    document.getElementById('emailSubject').textContent = subject;
+    document.getElementById('emailBody').textContent = buildEmailBody();
+  }
+
+  function copyEmail() {
+    navigator.clipboard.writeText(buildEmailBody()).then(function() {
+      var btn = document.getElementById('copyEmailBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy Body'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function openOutlook() {
+    var to = encodeURIComponent(parsedData.lineManagerEmail || '');
+    var subject = encodeURIComponent('New Starter - ' + getStarterFullName());
+    var body = encodeURIComponent(buildEmailBody());
+    window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
   }
 </script>
 </body>
