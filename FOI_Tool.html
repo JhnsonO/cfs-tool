@@ -1011,7 +1011,7 @@ function buildEmail(data) {
   if(t.biTeam==='SENA'){ to=s.senaInbox||''; cc=s.senaCc||''; }
   else if(t.biTeam==='CSC'){ to=s.cscInbox||''; cc=s.cscCc||''; }
   const subj=`FOI ${data.reqNum} - Please confirm you can answer this FOI (or suggest where it needs to be sent) in the next 3 working days. Added to Planner.`;
-  const body=`FOI [${data.reqNum}] ${data.subject}\n\nPlease respond within 3 working days.\n\nPlease access this FOI at the __Planner - Information & Audit Management FOI__\nIf you do not accept this FOI, reply to this email to confirm.\nIf you do accept this FOI, please assign it to the relevant individual in your team\nPlease remember to comment on the task for further notifications`;
+  const body=`FOI [${data.reqNum}] ${data.subject}\n\nPlease respond within 3 working days.\n\nPlease access this FOI at the Planner - Information & Audit Management FOI:\nhttps://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.planner/mytasks?tenantId=1fcf6b4b-21c9-40c2-b753-a29d57017359&webUrl=https%3A%2F%2Ftasks.teams.microsoft.com%2Fteamsui%2FpersonalApp%2Falltasklists&context=%7B%22subEntityId%22%3A%22%2Fv1%2Fplan%2FavJYz1T-ckS5btKXybCk5ZYAGI2X%22%7D\nIf you do not accept this FOI, reply to this email to confirm.\nIf you do accept this FOI, please assign it to the relevant individual in your team\nPlease remember to comment on the task for further notifications`;
   document.getElementById('emailTo').value=to||'(Set BI inbox in Settings)';
   document.getElementById('emailCC').value=cc||'';
   document.getElementById('emailSubject').value=subj;
