@@ -51,6 +51,10 @@
   .field-item:nth-child(even) { border-right: none; } .field-item.full-width { grid-column: 1 / -1; border-right: none; } .field-item.empty .field-val { color: var(--border2); font-style: italic; }
   .field-key { font-size: 10px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
   .field-val { font-size: 13px; font-weight: 500; color: var(--text); word-break: break-word; }
+  .field-edit { font-size: 13px; font-weight: 500; color: var(--text); width: 100%; border: none; background: transparent; outline: none; padding: 0; font-family: inherit; cursor: text; }
+  .field-edit:focus { border-bottom: 1.5px solid var(--green); }
+  .field-edit::placeholder { color: var(--border2); font-style: italic; }
+  .field-item.empty .field-edit { color: var(--border2); }
   .gen-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 15px; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-bottom: 20px; display: none; }
   .gen-btn.visible { display: block; } .gen-btn:hover { background: #143d22; } .gen-btn:active { transform: scale(0.99); }
   .output-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
@@ -308,25 +312,112 @@
       if (m) { var y = m[3].length === 2 ? '20'+m[3] : m[3]; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
       return str;
     }
+
+    // ── Layer 1: label-based extraction ──────────────────────────────────────
     var d = {};
-    d.title = extractTableValue([/^Title\b/i]); if (d.title && d.title.length > 10) d.title = '';
-    d.firstName = extractTableValue([/^First name\b/i]);
-    d.surname = extractTableValue([/^Surname\b/i]);
-    d.jobTitle = extractTableValue([/^Job title\b/i]);
-    d.department = extractTableValue([/^Department\b/i]);
-    d.teamName = extractTableValue([/^Team name\b/i]);
-    d.officeLocation = extractTableValue([/^Office location\b/i]);
-    d.roomNumber = extractTableValue([/^Room number\b/i]);
-    d.employmentStatus = extractTableValue([/^Employment status\b/i]);
-    var rs = extractTableValue([/^Expected start date$/i]); d.startDate = rs ? normaliseDate(rs) : '';
-    var re = extractTableValue([/^Expected end date$/i]); d.endDate = (re && re.indexOf('Click') === -1) ? normaliseDate(re) : '';
-    d.lineManagerEmail = extractTableValue([/Line Manager.s email/i]);
-    d.equivalentUser = extractTableValue([/Email address of equivalent user/i]);
-    var lp = extractTableValue([/Will your new starter require a laptop/i]); d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
-    var mb = extractTableValue([/Will your new starter require a mobile/i]); d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
-    var mx = extractTableValue([/additional Outlook mailbox/i]); d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : 'No';
-    d.mailboxAddresses = extractTableValue([/Full email address.s. of the mailbox/i]);
-    d.mailboxLevel = extractTableValue([/Level of access/i]);
+    d.title           = extractTableValue([/^Title\b/i]);
+    if (d.title && d.title.length > 10) d.title = '';
+    d.firstName       = extractTableValue([/^First name\b/i, /^Preferred.*name\b/i, /^Forename\b/i]);
+    d.surname         = extractTableValue([/^Surname\b/i, /^Last name\b/i, /^Family name\b/i]);
+    d.jobTitle        = extractTableValue([/^Job title\b/i, /^Post title\b/i, /^Role\b/i]);
+    d.department      = extractTableValue([/^Department\b/i, /^Directorate\b/i, /^Service\b/i]);
+    d.teamName        = extractTableValue([/^Team name\b/i, /^Team\b/i]);
+    d.officeLocation  = extractTableValue([/^Office location\b/i, /^Location\b/i, /^Place of work\b/i, /^Work location\b/i]);
+    d.roomNumber      = extractTableValue([/^Room number\b/i, /^Room\b/i]);
+    d.employmentStatus= extractTableValue([/^Employment status\b/i, /^Contract type\b/i, /^Employee type\b/i]);
+    var rs = extractTableValue([/^Expected start date\b/i, /^Start date\b/i, /^Commencement date\b/i]);
+    d.startDate = rs ? normaliseDate(rs) : '';
+    var re = extractTableValue([/^Expected end date\b/i, /^End date\b/i, /^Contract end\b/i]);
+    d.endDate = (re && re.indexOf('Click') === -1) ? normaliseDate(re) : '';
+    d.lineManagerEmail  = extractTableValue([/Line Manager.s email/i, /Line manager email/i, /Manager.s email/i, /Manager email/i]);
+    d.equivalentUser    = extractTableValue([/Email address of equivalent user/i, /Equivalent user/i, /Mirror account/i]);
+    var lp = extractTableValue([/Will your new starter require a laptop/i, /Laptop required/i, /Require.*laptop/i]);
+    d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
+    var mb = extractTableValue([/Will your new starter require a mobile/i, /Mobile.*required/i, /Require.*mobile/i]);
+    d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
+    var mx = extractTableValue([/additional Outlook mailbox/i, /extra mailbox/i, /shared mailbox/i]);
+    d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : 'No';
+    d.mailboxAddresses = extractTableValue([/Full email address.s. of the mailbox/i, /Mailbox.*address/i]);
+    d.mailboxLevel     = extractTableValue([/Level of access/i, /Access level/i]);
+
+    // ── Layer 2: shape-based fallbacks for anything still blank ──────────────
+    // Collect all emails in doc, all dates, all Yes/No occurrences with context
+    var allEmails = [];
+    var allDates  = [];
+    lines.forEach(function(line) {
+      // emails
+      var em = line.match(/[\w.+-]+@[\w.-]+\.gov\.uk/gi);
+      if (em) em.forEach(function(e) { allEmails.push({ email: e.toLowerCase(), line: line.toLowerCase() }); });
+      // dates DD/MM/YY or DD/MM/YYYY or DD-MM-YYYY
+      var dm = line.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g);
+      if (dm) dm.forEach(function(dt) { allDates.push({ date: dt, line: line.toLowerCase() }); });
+    });
+
+    // Title fallback: scan first 15 lines for a standalone title token
+    if (!d.title) {
+      var titles = ['Mr','Mrs','Ms','Miss','Dr','Prof','Mx'];
+      for (var ti = 0; ti < Math.min(15, lines.length); ti++) {
+        var twords = lines[ti].split(/\s+/);
+        for (var tw = 0; tw < twords.length; tw++) {
+          var tw2 = twords[tw].replace(/[^a-zA-Z]/g,'');
+          if (titles.indexOf(tw2) !== -1) { d.title = tw2; break; }
+        }
+        if (d.title) break;
+      }
+    }
+
+    // Email fallbacks: line manager vs equivalent user
+    if (!d.lineManagerEmail) {
+      var mgr = allEmails.filter(function(e) {
+        return /manager|line.manager|lm\b/.test(e.line);
+      });
+      if (mgr.length) d.lineManagerEmail = mgr[0].email;
+      else if (allEmails.length) d.lineManagerEmail = allEmails[0].email;
+    }
+    if (!d.equivalentUser) {
+      var eq = allEmails.filter(function(e) {
+        return /equivalent|mirror|same role/.test(e.line) && e.email !== d.lineManagerEmail;
+      });
+      if (eq.length) d.equivalentUser = eq[0].email;
+      else {
+        // second distinct email
+        var others = allEmails.filter(function(e) { return e.email !== d.lineManagerEmail; });
+        if (others.length) d.equivalentUser = others[0].email;
+      }
+    }
+
+    // Date fallbacks
+    if (!d.startDate && allDates.length) {
+      var sd = allDates.filter(function(d2) { return /start|commencement|from/.test(d2.line); });
+      d.startDate = normaliseDate(sd.length ? sd[0].date : allDates[0].date);
+    }
+    if (!d.endDate && allDates.length > 1) {
+      var ed = allDates.filter(function(d2) { return /end|finish|until|to\b/.test(d2.line); });
+      if (ed.length) d.endDate = normaliseDate(ed[0].date);
+    }
+
+    // Yes/No fallbacks: scan for YES/NO on lines containing keyword anywhere
+    function yesNoNear(keywords) {
+      for (var ki2 = 0; ki2 < lines.length; ki2++) {
+        var ll = lines[ki2].toLowerCase();
+        var hasKey = keywords.some(function(k) { return ll.indexOf(k) !== -1; });
+        if (hasKey) {
+          // check same line and next 2
+          for (var kj = ki2; kj < Math.min(ki2+3, lines.length); kj++) {
+            if (/\byes\b/i.test(lines[kj])) return 'Yes';
+            if (/\bno\b/i.test(lines[kj])) return 'No';
+          }
+        }
+      }
+      return '';
+    }
+    if (!d.requiresLaptop) d.requiresLaptop = yesNoNear(['laptop']);
+    if (!d.requiresMobile) d.requiresMobile = yesNoNear(['mobile phone','mobile device','mobile']);
+    if (d.mailboxAccess !== 'Yes') {
+      var mxFb = yesNoNear(['mailbox','outlook mailbox']);
+      if (mxFb) d.mailboxAccess = mxFb;
+    }
+
     return d;
   }
 
@@ -340,10 +431,18 @@
       var key = keys[ki]; var val = data[key]; var isEmpty = !val;
       var item = document.createElement('div');
       item.className = 'field-item'+(isEmpty?' empty':'')+(WIDE_FIELDS.indexOf(key)!==-1?' full-width':'');
-      item.innerHTML = '<div class="field-key">'+FIELD_LABELS[key]+'</div><div class="field-val">'+(val||'—')+'</div>';
+      item.innerHTML = '<div class="field-key">'+FIELD_LABELS[key]+'</div>'
+        + '<input class="field-edit" data-key="'+key+'" value="'+(val||'')+'" placeholder="—" />';
       grid.appendChild(item); if (val) count++;
     }
     document.getElementById('fieldCount').textContent = count + ' fields';
+    // keep parsedData in sync as user edits
+    grid.querySelectorAll('.field-edit').forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        parsedData[inp.dataset.key] = inp.value.trim();
+        inp.closest('.field-item').classList.toggle('empty', !inp.value.trim());
+      });
+    });
     document.getElementById('fieldsPanel').classList.add('visible');
   }
 
