@@ -569,16 +569,20 @@
     var laptop = /require a laptop\?\s*:\s*Yes/i.test(raw);
     var mobile = /require a mobile phone\?\s*:\s*Yes/i.test(raw);
     var equipment = laptop && mobile ? 'Laptop and Smartphone' : laptop ? 'Laptop' : mobile ? 'Smartphone' : '';
-    var managerEmail = extract(/Line Manager(?:'s|.s) Email Address\s*:\s*([^\s\n\r]+)/);
+    // Manager email — try several label formats the Marval confirmation page might use
+    var managerEmail = extract(/Line Manager(?:'s|.s)\s*Email\s*(?:Address)?\s*:\s*([^\s\n\r]+)/i)
+      || extract(/Manager\s*Email\s*(?:Address)?\s*:\s*([^\s\n\r]+)/i)
+      || extract(/([\w.+-]+@[\w.-]+\.gov\.uk)/) ; // last resort: first .gov.uk email in the page
     var managerName = '';
     if (managerEmail) {
       managerName = managerEmail.split('@')[0].split('.').map(function(p) { return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(); }).join(' ');
     }
-    logData = { srvRef: srvRef, fullName: fullName, startDate: startDate, equipment: equipment, managerName: managerName, managerEmail: managerEmail };
-    var itCells = [srvRef, fullName, startDate, equipment, '', managerName];
+    var completedBy = 'Johnson Oyegoke';
+    logData = { srvRef: srvRef, fullName: fullName, startDate: startDate, equipment: equipment, completedBy: completedBy, managerName: managerName, managerEmail: managerEmail };
+    var itCells = [srvRef, fullName, startDate, equipment, completedBy, managerName];
     var itRow = document.getElementById('itRow'); itRow.innerHTML = '';
     itCells.forEach(function(val) { var td = document.createElement('td'); td.className = val ? '' : 'empty'; td.textContent = val || '(fill manually)'; itRow.appendChild(td); });
-    var chaserCells = [fullName, startDate, managerName, '', ''];
+    var chaserCells = [fullName, startDate, managerName, completedBy, ''];
     var chaserRow = document.getElementById('chaserRow'); chaserRow.innerHTML = '';
     chaserCells.forEach(function(val) { var td = document.createElement('td'); td.className = val ? '' : 'empty'; td.textContent = val || '(fill later)'; chaserRow.appendChild(td); });
     document.getElementById('logResults').classList.add('visible');
@@ -587,8 +591,8 @@
 
   function copyRow(type) {
     var vals, btnId;
-    if (type === 'it') { vals = [logData.srvRef, logData.fullName, logData.startDate, logData.equipment, '', logData.managerName]; btnId = 'copyIT'; }
-    else { vals = [logData.fullName, logData.startDate, logData.managerName, '', '']; btnId = 'copyChaser'; }
+    if (type === 'it') { vals = [logData.srvRef, logData.fullName, logData.startDate, logData.equipment, logData.completedBy, logData.managerName]; btnId = 'copyIT'; }
+    else { vals = [logData.fullName, logData.startDate, logData.managerName, logData.completedBy, '']; btnId = 'copyChaser'; }
     navigator.clipboard.writeText(vals.join('\t')).then(function() {
       var btn = document.getElementById(btnId); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy Row'; btn.classList.remove('copied'); }, 2000);
