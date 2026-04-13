@@ -604,7 +604,11 @@
     var email = parsedData.lineManagerEmail || '';
     if (!email) return '[Manager Name]';
     var local = email.split('@')[0];
-    var parts = local.split('.');
+    var parts = local.split('.').filter(function(p) {
+      // skip known non-name tokens
+      return !['address','the','team','generic','shared','noreply','no-reply','info','admin','mail'].includes(p.toLowerCase()) && p.length > 1;
+    });
+    if (!parts.length) return '[Manager Name]';
     return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
   }
 
@@ -623,11 +627,33 @@
     return d;
   }
 
-  function buildEmailBody() {
+  function buildEmailBodyHtml() {
     var mgr = getManagerFirstName();
     var name = getStarterFullName();
     var date = getStartDate();
-    return 'Hello ' + mgr + ',\n\nWe have been advised by HR that your new member of staff ' + name + ' has been given a provisional start date of ' + date + '\n\nPlease find attached the new starter form that HR have pre-populated with the information that they have. Please could you complete/amend any of the information that is missing or incorrect and return it to IM&T-Generic@leics.gov.uk.\n\nPlease Note: This is only a provisional start date used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.\n\nIf you have any questions or queries regarding this, please contact the HR team on CFSBusinessSupport-HR@leics.gov.uk\n\nIf your new member of staff is transferring from another team / department (i.e. already works for Leicestershire County Council) please let us know as a different form will need to be completed.\n\nPlease can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.\n\nPlease do not raise this request on Marval yourself. All new starters are to be set up by IM&T to ensure a central process is followed.\n\nThank you';
+    return '<p>Hello <strong>' + mgr + '</strong>,</p>'
+      + '<p>We have been advised by HR that your new member of staff <strong>' + name + '</strong> has been given a <u><strong>provisional start date</strong></u> of <strong>' + date + '</strong></p>'
+      + '<p>Please find attached the new starter form that HR have pre-populated with the information that they have. Please could you complete /amend any of the information that is missing or incorrect and return it to <a href="mailto:IM&T-Generic@leics.gov.uk">IM&amp;T-Generic@leics.gov.uk</a>.</p>'
+      + '<p style="background:#ffff00;font-weight:bold;"><strong>Please Note: This is only a <u>provisional start date</u> used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.</strong></p>'
+      + '<p><strong>If you have any questions or queries regarding this, please contact the HR team on <a href="mailto:CFSBusinessSupport-HR@leics.gov.uk">CFSBusinessSupport-HR@leics.gov.uk</a></strong></p>'
+      + '<p>If your new member of staff is transferring from another team / department (i.e. already works for Leicestershire County Council) please let us know as a different form will need to be completed.</p>'
+      + '<p style="background:#00ffff;"><strong>Please can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.</strong></p>'
+      + '<p style="color:#cc0000;font-weight:bold;"><strong>Please do not raise this request on Marval yourself. All new starters are to be set up by IM&amp;T to ensure a central process is followed.</strong></p>'
+      + '<p>Thank you</p>';
+  }
+
+  function buildEmailBodyPlain() {
+    var mgr = getManagerFirstName();
+    var name = getStarterFullName();
+    var date = getStartDate();
+    return 'Hello ' + mgr + ',\n\n'
+      + 'We have been advised by HR that your new member of staff ' + name + ' has been given a provisional start date of ' + date + '\n\n'
+      + 'Please find attached the new starter form that HR have pre-populated with the information that they have. Please could you complete/amend any of the information that is missing or incorrect and return it to IM&T-Generic@leics.gov.uk.\n\n'
+      + 'Please Note: This is only a provisional start date used to set the new starter up with ICT access. As the line manager, you will still be required to agree a mutually convenient start date with the new starter once the HR team have advised you that all pre-employment checks are complete.\n\n'
+      + 'If you have any questions or queries regarding this, please contact the HR team on CFSBusinessSupport-HR@leics.gov.uk\n\n'
+      + 'If your new member of staff is transferring from another team / department (i.e. already works for Leicestershire County Council) please let us know as a different form will need to be completed.\n\n'
+      + 'Please can you provide a passport style photograph of your new member of staff as this will be required for their ID badge setup.\n\n'
+      + 'Please do not raise this request on Marval yourself. All new starters are to be set up by IM&T to ensure a central process is followed.\n\nThank you';
   }
 
   function renderEmail() {
@@ -644,11 +670,11 @@
     var subject = 'New Starter - ' + starterName;
     document.getElementById('emailTo').textContent = toEmail || '(no manager email found)';
     document.getElementById('emailSubject').textContent = subject;
-    document.getElementById('emailBody').textContent = buildEmailBody();
+    document.getElementById('emailBody').innerHTML = buildEmailBodyHtml();
   }
 
   function copyEmail() {
-    navigator.clipboard.writeText(buildEmailBody()).then(function() {
+    navigator.clipboard.writeText(buildEmailBodyPlain()).then(function() {
       var btn = document.getElementById('copyEmailBtn'); btn.textContent = '✓ Copied!'; btn.classList.add('copied');
       setTimeout(function() { btn.textContent = 'Copy Body'; btn.classList.remove('copied'); }, 2000);
     });
@@ -657,7 +683,7 @@
   function openOutlook() {
     var to = encodeURIComponent(parsedData.lineManagerEmail || '');
     var subject = encodeURIComponent('New Starter - ' + getStarterFullName());
-    var body = encodeURIComponent(buildEmailBody());
+    var body = encodeURIComponent(buildEmailBodyPlain());
     window.location.href = 'mailto:' + to + '?subject=' + subject + '&body=' + body;
   }
 </script>
