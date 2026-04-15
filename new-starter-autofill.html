@@ -379,12 +379,21 @@
     d.endDate = (re2 && !/click|choose/i.test(re2)) ? normaliseDate(re2) : '';
     d.lineManagerEmail  = extractValue([/line.?manager.s.?email/i, /line.?manager.?email/i, /manager.s.?email.?address/i]);
     d.equivalentUser    = extractValue([/email.?address.?of.?equivalent.?user/i]);
+    // Helper: only accept Yes/No if not both present on the same string (unselected radio)
+    function cleanYesNo(val) {
+      if (!val) return '';
+      var hasYes = /\byes\b/i.test(val), hasNo = /\bno\b/i.test(val);
+      if (hasYes && hasNo) return '';  // both = unselected radio, treat as blank
+      if (hasYes) return 'Yes';
+      if (hasNo)  return 'No';
+      return '';
+    }
     var lp = extractValue([/will.?your.?new.?starter.?require.?a.?laptop/i, /^laptop\b/i]);
-    d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
+    d.requiresLaptop = cleanYesNo(lp);
     var mb = extractValue([/will.?your.?new.?starter.?require.?a.?mobile/i, /^mobile\b/i]);
-    d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
+    d.requiresMobile = cleanYesNo(mb);
     var mx = extractValue([/additional.?outlook.?mailbox/i, /^additional.?outlook\b/i]);
-    d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : /no/i.test(mx) ? 'No' : '';
+    d.mailboxAccess = cleanYesNo(mx);
     d.mailboxAddresses = extractValue([/full.?email.?address.s?.?of.?the.?mailbox/i]);
     var ml = extractValue([/^level.?of.?access\b/i]);
     d.mailboxLevel = ml ? ml.replace(/^\?+\s*/, '').trim() : '';
@@ -458,14 +467,19 @@
     }
 
     // Yes/No fallbacks: scan paraTexts for YES/NO near keyword
+    // Only count a Yes/No if the line doesn't contain BOTH (which means unselected radio options printed as text)
     function yesNoNear(keywords) {
       for (var ki2 = 0; ki2 < paraTexts.length; ki2++) {
         var ll = paraTexts[ki2].toLowerCase();
         var hasKey = keywords.some(function(k) { return ll.indexOf(k) !== -1; });
         if (hasKey) {
           for (var kj = ki2; kj < Math.min(ki2+3, paraTexts.length); kj++) {
-            if (/\byes\b/i.test(paraTexts[kj])) return 'Yes';
-            if (/\bno\b/i.test(paraTexts[kj])) return 'No';
+            var pl = paraTexts[kj];
+            var hasYes = /\byes\b/i.test(pl);
+            var hasNo  = /\bno\b/i.test(pl);
+            if (hasYes && hasNo) continue;  // both present = unselected radio row, skip
+            if (hasYes) return 'Yes';
+            if (hasNo)  return 'No';
           }
         }
       }
