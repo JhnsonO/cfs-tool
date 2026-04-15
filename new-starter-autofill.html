@@ -55,6 +55,8 @@
   .field-edit:focus { border-bottom: 1.5px solid var(--green); }
   .field-edit::placeholder { color: var(--border2); font-style: italic; }
   .field-item.empty .field-edit { color: var(--border2); }
+  select.field-edit { cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 2px center; padding-right: 16px; }
+  select.field-edit option { background: var(--surface, #1a1d27); color: var(--text, #e2e6f0); }
   .gen-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 15px; cursor: pointer; transition: background 0.15s, transform 0.1s; margin-bottom: 20px; display: none; }
   .gen-btn.visible { display: block; } .gen-btn:hover { background: #143d22; } .gen-btn:active { transform: scale(0.99); }
   .output-panel { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
@@ -506,6 +508,14 @@
   var FIELD_LABELS = { title:'Title', firstName:'First Name', surname:'Surname', jobTitle:'Job Title', department:'Department', teamName:'Team', officeLocation:'Office Location', roomNumber:'Room', employmentStatus:'Employment', startDate:'Start Date', endDate:'End Date', lineManagerEmail:'Line Manager Email', equivalentUser:'Equivalent User', requiresLaptop:'Laptop?', requiresMobile:'Mobile?', mailboxAccess:'Extra Mailbox?', mailboxAddresses:'Mailbox Address', mailboxLevel:'Access Level', payrollNumber:'Payroll Number' };
   var WIDE_FIELDS = ['jobTitle','lineManagerEmail','equivalentUser','mailboxAddresses'];
 
+  // Fields that render as dropdowns instead of text inputs
+  var FIELD_DROPDOWNS = {
+    employmentStatus: ['', 'Permanent', 'Fixed Term', 'Agency', 'Casual', 'Apprenticeship'],
+    requiresLaptop:   ['', 'Yes', 'No'],
+    requiresMobile:   ['', 'Yes', 'No'],
+    mailboxAccess:    ['', 'Yes', 'No'],
+  };
+
   function renderFields(data) {
     var grid = document.getElementById('fieldsGrid'); grid.innerHTML = '';
     var count = 0; var keys = Object.keys(FIELD_LABELS);
@@ -513,13 +523,25 @@
       var key = keys[ki]; var val = data[key]; var isEmpty = !val;
       var item = document.createElement('div');
       item.className = 'field-item'+(isEmpty?' empty':'')+(WIDE_FIELDS.indexOf(key)!==-1?' full-width':'');
-      item.innerHTML = '<div class="field-key">'+FIELD_LABELS[key]+'</div>'
-        + '<input class="field-edit" data-key="'+key+'" value="'+(val||'')+'" placeholder="—" />';
+      var inputHtml;
+      if (FIELD_DROPDOWNS[key]) {
+        var opts = FIELD_DROPDOWNS[key].map(function(o) {
+          return '<option value="'+o+'"'+(o===val?' selected':'')+'>'+( o||'—')+'</option>';
+        }).join('');
+        inputHtml = '<select class="field-edit" data-key="'+key+'">'+opts+'</select>';
+      } else {
+        inputHtml = '<input class="field-edit" data-key="'+key+'" value="'+(val||'')+'" placeholder="—" />';
+      }
+      item.innerHTML = '<div class="field-key">'+FIELD_LABELS[key]+'</div>' + inputHtml;
       grid.appendChild(item); if (val) count++;
     }
     document.getElementById('fieldCount').textContent = count + ' fields';
     // keep parsedData in sync as user edits
     grid.querySelectorAll('.field-edit').forEach(function(inp) {
+      inp.addEventListener('change', function() {
+        parsedData[inp.dataset.key] = inp.value.trim();
+        inp.closest('.field-item').classList.toggle('empty', !inp.value.trim());
+      });
       inp.addEventListener('input', function() {
         parsedData[inp.dataset.key] = inp.value.trim();
         inp.closest('.field-item').classList.toggle('empty', !inp.value.trim());
