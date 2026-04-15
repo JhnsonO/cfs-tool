@@ -287,8 +287,12 @@
         || /^\d+\.\s/.test(val);
     }
     function normaliseDate(str) {
+      // Normalise to DD/MM/YYYY for display, log rows, email and Marval input
       var m = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-      if (m) { var y = m[3].length === 2 ? '20'+m[3] : m[3]; return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+      if (m) {
+        var y = m[3].length === 2 ? '20'+m[3] : m[3];
+        return m[1].padStart(2,'0') + '/' + m[2].padStart(2,'0') + '/' + y;
+      }
       return str;
     }
 
@@ -699,12 +703,7 @@
   }
 
   function getStartDate() {
-    // Convert YYYY-MM-DD back to DD/MM/YYYY for display in email
-    var d = parsedData.startDate || '';
-    if (!d) return '[Provisional Date]';
-    var m = d.match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (m) return m[3] + '/' + m[2] + '/' + m[1];
-    return d;
+    return parsedData.startDate || '[Provisional Date]';
   }
 
   function buildEmailBodyHtml() {
