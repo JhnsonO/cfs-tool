@@ -478,10 +478,14 @@
       if (mxFb) d.mailboxAccess = mxFb;
     }
 
+    // CFS constants — always the same
+    d.department   = 'Children & Family Services';
+    d.payrollNumber = 'N/A';
+
     return d;
   }
 
-  var FIELD_LABELS = { title:'Title', firstName:'First Name', surname:'Surname', jobTitle:'Job Title', department:'Department', teamName:'Team', officeLocation:'Office Location', roomNumber:'Room', employmentStatus:'Employment', startDate:'Start Date', endDate:'End Date', lineManagerEmail:'Line Manager Email', equivalentUser:'Equivalent User', requiresLaptop:'Laptop?', requiresMobile:'Mobile?', mailboxAccess:'Extra Mailbox?', mailboxAddresses:'Mailbox Address', mailboxLevel:'Access Level' };
+  var FIELD_LABELS = { title:'Title', firstName:'First Name', surname:'Surname', jobTitle:'Job Title', department:'Department', teamName:'Team', officeLocation:'Office Location', roomNumber:'Room', employmentStatus:'Employment', startDate:'Start Date', endDate:'End Date', lineManagerEmail:'Line Manager Email', equivalentUser:'Equivalent User', requiresLaptop:'Laptop?', requiresMobile:'Mobile?', mailboxAccess:'Extra Mailbox?', mailboxAddresses:'Mailbox Address', mailboxLevel:'Access Level', payrollNumber:'Payroll Number' };
   var WIDE_FIELDS = ['jobTitle','lineManagerEmail','equivalentUser','mailboxAddresses'];
 
   function renderFields(data) {
@@ -533,6 +537,7 @@
         'teamName:' + JSON.stringify(d.teamName||'') + ',' +
         'officeLocation:' + JSON.stringify(d.officeLocation||'') + ',' +
         'roomNumber:' + JSON.stringify(d.roomNumber||'') + ',' +
+        'payrollNumber:' + JSON.stringify(d.payrollNumber||'') + ',' +
         'employmentStatus:' + JSON.stringify(d.employmentStatus||'') + ',' +
         'startDate:' + JSON.stringify(d.startDate||'') + ',' +
         'endDate:' + JSON.stringify(d.endDate||'') + ',' +
@@ -571,6 +576,7 @@
       'byLabel("Team Name",d.teamName);' +
       'byLabel("Office Location",d.officeLocation);' +
       'byLabel("Room Number",d.roomNumber);' +
+      'byLabel("Payroll Number",d.payrollNumber);' +
       'byLabel("Employment Status",d.employmentStatus,true);' +
       'byLabel("Expected Start Date",d.startDate);' +
       'byLabel("Expected End Date",d.endDate);' +
