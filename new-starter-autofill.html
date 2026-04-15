@@ -378,7 +378,7 @@
     var re2 = extractValue([/^expected.?end.?date\b/i, /^end.?date\b/i]);
     d.endDate = (re2 && !/click|choose/i.test(re2)) ? normaliseDate(re2) : '';
     d.lineManagerEmail  = extractValue([/line.?manager.s.?email/i, /line.?manager.?email/i, /manager.s.?email.?address/i]);
-    d.equivalentUser    = extractValue([/email.?address.?of.?equivalent.?user/i, /equivalent.?user\b/i]);
+    d.equivalentUser    = extractValue([/email.?address.?of.?equivalent.?user/i]);
     var lp = extractValue([/will.?your.?new.?starter.?require.?a.?laptop/i, /^laptop\b/i]);
     d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
     var mb = extractValue([/will.?your.?new.?starter.?require.?a.?mobile/i, /^mobile\b/i]);
@@ -386,16 +386,18 @@
     var mx = extractValue([/additional.?outlook.?mailbox/i, /^additional.?outlook\b/i]);
     d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : /no/i.test(mx) ? 'No' : '';
     d.mailboxAddresses = extractValue([/full.?email.?address.s?.?of.?the.?mailbox/i]);
-    d.mailboxLevel     = extractValue([/^level.?of.?access\b/i]);
+    var ml = extractValue([/^level.?of.?access\b/i]);
+    d.mailboxLevel = ml ? ml.replace(/^\?+\s*/, '').trim() : '';
 
     // ── Shape-based fallbacks for anything still blank ───────────────────────
-    // Scan all text (paragraphs + table cell text from raw HTML) for emails/dates
-    var allText = stripTags(html);
+    // Split on closing block tags so each email/date carries only its own paragraph as context
     var allEmails = [];
     var allDates  = [];
-    var textLines = allText.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
-    textLines.forEach(function(line) {
-      var em = line.match(/[\w.+\-]+@[\w.\-]+\.(?:gov\.uk|leics\.gov\.uk)/gi);
+    var htmlLines = html.replace(/<\/(p|td|tr|li|div|h[1-6])>/gi, '\n').split('\n');
+    htmlLines.forEach(function(rawLine) {
+      var line = rawLine.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/&#[^;]+;/g,'').replace(/[ \t]{2,}/g,' ').trim();
+      if (!line) return;
+      var em = line.match(/[\w.+\-]+@[\w.\-]+\.gov\.uk/gi);
       if (em) em.forEach(function(e) { allEmails.push({ email: e.toLowerCase(), line: line.toLowerCase() }); });
       var dm = line.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g);
       if (dm) dm.forEach(function(dt) { allDates.push({ date: dt, line: line.toLowerCase() }); });
@@ -430,9 +432,14 @@
         return /equivalent|mirror|same role/.test(e.line) && e.email !== d.lineManagerEmail;
       });
       if (eq.length) d.equivalentUser = eq[0].email;
+      // Only fall back to second email if it looks like a personal address (firstname.surname pattern)
       else {
-        var others = allEmails.filter(function(e) { return e.email !== d.lineManagerEmail; });
-        if (others.length) d.equivalentUser = others[0].email;
+        var personal = allEmails.filter(function(e) {
+          return e.email !== d.lineManagerEmail
+            && /^[a-z]+\.[a-z]+@/.test(e.email)
+            && !/^(cr[a-z]*business|im&?t|imt|ict|info|admin|generic|noreply)/i.test(e.email);
+        });
+        if (personal.length) d.equivalentUser = personal[0].email;
       }
     }
     if (d.equivalentUser) {
