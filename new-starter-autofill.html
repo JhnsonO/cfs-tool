@@ -258,7 +258,7 @@
     showStatus('amber', 'Reading document…', file.name);
     var reader = new FileReader();
     reader.onload = function(e) {
-      mammoth.extractRawText({ arrayBuffer: e.target.result }).then(function(result) {
+      mammoth.convertToHtml({ arrayBuffer: e.target.result }).then(function(result) {
         parsedData = parseDocument(result.value);
         var count = Object.values(parsedData).filter(function(v) { return v; }).length;
         if (count === 0) { showStatus('red', 'Could not extract fields — is this the right document?', file.name); dropZone.classList.add('has-error'); }
@@ -276,36 +276,15 @@
     reader.readAsArrayBuffer(file);
   }
 
-  function parseDocument(text) {
-    // Strip image/WMF placeholders but keep trailing text on same line
-    // e.g. "Team Name ![](media/image3.wmf)Early Years Inclusion" -> "Team Name Early Years Inclusion"
-    var cleaned = text.replace(/!\[[^\]]*\]\([^)]*\)/g, ' ').replace(/[ \t]{2,}/g, ' ');
-    var lines = cleaned.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
-
+  function parseDocument(html) {
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function stripTags(s) { return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/&#[^;]+;/g,'').replace(/[ \t]{2,}/g,' ').trim(); }
     function junk(val) {
-      return !val || val.indexOf('Click or tap') !== -1 || val.indexOf('Choose an item') !== -1
-        || val.length > 200 || /^\*\*Please/.test(val) || /^\d+\./.test(val)
-        || /^\*\*This form/.test(val) || /^\*\*User login/.test(val);
-    }
-
-    function extractTableValue(patterns) {
-      for (var pi = 0; pi < patterns.length; pi++) {
-        for (var i = 0; i < lines.length; i++) {
-          var line = lines[i];
-          var m = line.match(patterns[pi]);
-          if (m) {
-            // 1) Inline: text after the label on the same line
-            var after = line.slice(m.index + m[0].length).replace(/^[\s:]+/, '').trim();
-            if (after && !junk(after)) return after;
-            // 2) Next-line fallback
-            for (var j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-              var val = lines[j].trim();
-              if (!junk(val)) return val;
-            }
-          }
-        }
-      }
-      return '';
+      return !val || /click or tap/i.test(val) || /choose an item/i.test(val)
+        || val.length > 200 || /^Please (note|enter|only)/i.test(val)
+        || /^This form should/i.test(val) || /^User login/i.test(val)
+        || /^Staff members are set up/i.test(val) || /^The installation/i.test(val)
+        || /^\d+\.\s/.test(val);
     }
     function normaliseDate(str) {
       var m = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
@@ -313,51 +292,120 @@
       return str;
     }
 
-    // ── Layer 1: label-based extraction ──────────────────────────────────────
-    var d = {};
-    d.title           = extractTableValue([/^Title\b/i]);
-    if (d.title && d.title.length > 10) d.title = '';
-    d.firstName       = extractTableValue([/^First name\b/i, /^Preferred.*name\b/i, /^Forename\b/i]);
-    d.surname         = extractTableValue([/^Surname\b/i, /^Last name\b/i, /^Family name\b/i]);
-    d.jobTitle        = extractTableValue([/^Job title\b/i, /^Post title\b/i, /^Role\b/i]);
-    d.department      = extractTableValue([/^Department\b/i, /^Directorate\b/i, /^Service\b/i]);
-    d.teamName        = extractTableValue([/^Team name\b/i, /^Team\b/i]);
-    d.officeLocation  = extractTableValue([/^Office location\b/i, /^Location\b/i, /^Place of work\b/i, /^Work location\b/i]);
-    d.roomNumber      = extractTableValue([/^Room number\b/i, /^Room\b/i]);
-    d.employmentStatus= extractTableValue([/^Employment status\b/i, /^Contract type\b/i, /^Employee type\b/i]);
-    var rs = extractTableValue([/^Expected start date\b/i, /^Start date\b/i, /^Commencement date\b/i]);
-    d.startDate = rs ? normaliseDate(rs) : '';
-    var re = extractTableValue([/^Expected end date\b/i, /^End date\b/i, /^Contract end\b/i]);
-    d.endDate = (re && re.indexOf('Click') === -1) ? normaliseDate(re) : '';
-    d.lineManagerEmail  = extractTableValue([/Line Manager.s email/i, /Line manager email/i, /Manager.s email/i, /Manager email/i]);
-    d.equivalentUser    = extractTableValue([/Email address of equivalent user/i, /Equivalent user/i, /Mirror account/i]);
-    var lp = extractTableValue([/Will your new starter require a laptop/i, /Laptop required/i, /Require.*laptop/i]);
-    d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
-    var mb = extractTableValue([/Will your new starter require a mobile/i, /Mobile.*required/i, /Require.*mobile/i]);
-    d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
-    var mx = extractTableValue([/additional Outlook mailbox/i, /extra mailbox/i, /shared mailbox/i]);
-    d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : 'No';
-    d.mailboxAddresses = extractTableValue([/Full email address.s. of the mailbox/i, /Mailbox.*address/i]);
-    d.mailboxLevel     = extractTableValue([/Level of access/i, /Access level/i]);
+    // ── Layer 1: HTML table <td>label</td><td>value</td> pairs (new form) ────
+    // Mammoth converts Word tables to <table><tr><td>…</td><td>…</td></tr>
+    var tdPairs = {};
+    var trMatches = html.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+    trMatches.forEach(function(tr) {
+      var cells = [];
+      var tdRx = /<td[^>]*>([\s\S]*?)<\/td>/gi, m;
+      while ((m = tdRx.exec(tr)) !== null) { cells.push(stripTags(m[1]).trim()); }
+      // Deduplicate merged cells (Word merged cells repeat the same content)
+      var deduped = [];
+      cells.forEach(function(c) { if (!deduped.length || c !== deduped[deduped.length-1]) deduped.push(c); });
+      if (deduped.length === 2 && deduped[0] && deduped[1] && !junk(deduped[1])) {
+        tdPairs[deduped[0].toLowerCase()] = deduped[1];
+      }
+    });
 
-    // ── Layer 2: shape-based fallbacks for anything still blank ──────────────
-    // Collect all emails in doc, all dates, all Yes/No occurrences with context
+    function fromTable(patterns) {
+      for (var pi = 0; pi < patterns.length; pi++) {
+        for (var key in tdPairs) {
+          if (patterns[pi].test(key)) return tdPairs[key];
+        }
+      }
+      return '';
+    }
+
+    // ── Layer 2: paragraph inline extraction (old form) ───────────────────────
+    // Old form: <p>Label           Value</p> — label and value on same paragraph, separated by spaces
+    var paraTexts = [];
+    var pRx = /<p[^>]*>([\s\S]*?)<\/p>/gi, pm;
+    while ((pm = pRx.exec(html)) !== null) {
+      var pt = stripTags(pm[1]).trim();
+      if (pt) paraTexts.push(pt);
+    }
+
+    // Known label patterns — used to guard next-line fallback from cascading into next label
+    var labelGuards = [
+      /^Title\b/i, /^First.?name\b/i, /^Surname\b/i, /^Job.?title\b/i, /^Department\b/i,
+      /^Team.?name\b/i, /^Office.?location\b/i, /^Room.?number\b/i, /^Employment.?status\b/i,
+      /^Expected.?start.?date\b/i, /^Expected.?end.?date\b/i, /^Line.?Manager/i,
+      /^Email.?address.?of.?equivalent/i, /^Will.?your.?new.?starter/i,
+      /^Additional.?Outlook/i, /^Full.?email.?address/i, /^Level.?of.?access/i
+    ];
+    function isLabel(s) { return labelGuards.some(function(r) { return r.test(s); }); }
+
+    function fromParagraph(patterns) {
+      for (var pi = 0; pi < patterns.length; pi++) {
+        for (var i = 0; i < paraTexts.length; i++) {
+          var line = paraTexts[i];
+          var m = line.match(patterns[pi]);
+          if (m) {
+            // Inline value: everything after the matched label (separated by spaces/colon)
+            var after = line.slice(m.index + m[0].length).replace(/^[\s:]+/, '').trim();
+            if (after && !junk(after)) return after;
+            // Next-line fallback — but ONLY if the next line is not itself a label
+            for (var j = i + 1; j < Math.min(i + 4, paraTexts.length); j++) {
+              var val = paraTexts[j].trim();
+              if (isLabel(val)) break;          // stop: hit the next label, value is blank
+              if (!junk(val)) return val;
+            }
+          }
+        }
+      }
+      return '';
+    }
+
+    function extractValue(patterns) {
+      return fromTable(patterns) || fromParagraph(patterns);
+    }
+
+    // ── Field extraction ─────────────────────────────────────────────────────
+    var d = {};
+    d.title           = extractValue([/^title$/i]);
+    if (d.title && d.title.length > 10) d.title = '';
+    d.firstName       = extractValue([/^first.?name\b/i, /^preferred.*name\b/i, /^forename\b/i]);
+    d.surname         = extractValue([/^surname\b/i, /^last.?name\b/i, /^family.?name\b/i]);
+    d.jobTitle        = extractValue([/^job.?title\b/i, /^post.?title\b/i]);
+    d.department      = extractValue([/^department\b/i, /^directorate\b/i]);
+    d.teamName        = extractValue([/^team.?name\b/i]);
+    d.officeLocation  = extractValue([/^office.?location\b/i, /^place.?of.?work\b/i]);
+    d.roomNumber      = extractValue([/^room.?number\b/i]);
+    d.employmentStatus= extractValue([/^employment.?status\b/i, /^contract.?type\b/i]);
+    var rs = extractValue([/^expected.?start.?date\b/i, /^start.?date\b/i]);
+    d.startDate = rs ? normaliseDate(rs) : '';
+    var re2 = extractValue([/^expected.?end.?date\b/i, /^end.?date\b/i]);
+    d.endDate = (re2 && !/click|choose/i.test(re2)) ? normaliseDate(re2) : '';
+    d.lineManagerEmail  = extractValue([/line.?manager.s.?email/i, /line.?manager.?email/i, /manager.s.?email.?address/i]);
+    d.equivalentUser    = extractValue([/email.?address.?of.?equivalent.?user/i, /equivalent.?user\b/i]);
+    var lp = extractValue([/will.?your.?new.?starter.?require.?a.?laptop/i, /^laptop\b/i]);
+    d.requiresLaptop = /yes/i.test(lp) ? 'Yes' : /no/i.test(lp) ? 'No' : '';
+    var mb = extractValue([/will.?your.?new.?starter.?require.?a.?mobile/i, /^mobile\b/i]);
+    d.requiresMobile = /yes/i.test(mb) ? 'Yes' : /no/i.test(mb) ? 'No' : '';
+    var mx = extractValue([/additional.?outlook.?mailbox/i, /^additional.?outlook\b/i]);
+    d.mailboxAccess = /yes/i.test(mx) ? 'Yes' : /no/i.test(mx) ? 'No' : '';
+    d.mailboxAddresses = extractValue([/full.?email.?address.s?.?of.?the.?mailbox/i]);
+    d.mailboxLevel     = extractValue([/^level.?of.?access\b/i]);
+
+    // ── Shape-based fallbacks for anything still blank ───────────────────────
+    // Scan all text (paragraphs + table cell text from raw HTML) for emails/dates
+    var allText = stripTags(html);
     var allEmails = [];
     var allDates  = [];
-    lines.forEach(function(line) {
-      // emails
-      var em = line.match(/[\w.+-]+@[\w.-]+\.gov\.uk/gi);
+    var textLines = allText.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    textLines.forEach(function(line) {
+      var em = line.match(/[\w.+\-]+@[\w.\-]+\.(?:gov\.uk|leics\.gov\.uk)/gi);
       if (em) em.forEach(function(e) { allEmails.push({ email: e.toLowerCase(), line: line.toLowerCase() }); });
-      // dates DD/MM/YY or DD/MM/YYYY or DD-MM-YYYY
       var dm = line.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g);
       if (dm) dm.forEach(function(dt) { allDates.push({ date: dt, line: line.toLowerCase() }); });
     });
 
-    // Title fallback: scan first 15 lines for a standalone title token
+    // Title fallback: scan paraTexts for standalone title token
     if (!d.title) {
       var titles = ['Mr','Mrs','Ms','Miss','Dr','Prof','Mx'];
-      for (var ti = 0; ti < Math.min(15, lines.length); ti++) {
-        var twords = lines[ti].split(/\s+/);
+      for (var ti = 0; ti < Math.min(15, paraTexts.length); ti++) {
+        var twords = paraTexts[ti].split(/\s+/);
         for (var tw = 0; tw < twords.length; tw++) {
           var tw2 = twords[tw].replace(/[^a-zA-Z]/g,'');
           if (titles.indexOf(tw2) !== -1) { d.title = tw2; break; }
@@ -366,13 +414,16 @@
       }
     }
 
-    // Email fallbacks: line manager vs equivalent user
+    // Email fallbacks
     if (!d.lineManagerEmail) {
-      var mgr = allEmails.filter(function(e) {
-        return /manager|line.manager|lm\b/.test(e.line);
-      });
+      var mgr = allEmails.filter(function(e) { return /manager|line.manager|lm\b/.test(e.line); });
       if (mgr.length) d.lineManagerEmail = mgr[0].email;
       else if (allEmails.length) d.lineManagerEmail = allEmails[0].email;
+    }
+    // Strip any label prefix that may have been captured inline (old form: "Address   email@...")
+    if (d.lineManagerEmail) {
+      var emailOnly = d.lineManagerEmail.match(/[\w.+\-]+@[\w.\-]+\.gov\.uk/i);
+      if (emailOnly) d.lineManagerEmail = emailOnly[0].toLowerCase();
     }
     if (!d.equivalentUser) {
       var eq = allEmails.filter(function(e) {
@@ -380,32 +431,34 @@
       });
       if (eq.length) d.equivalentUser = eq[0].email;
       else {
-        // second distinct email
         var others = allEmails.filter(function(e) { return e.email !== d.lineManagerEmail; });
         if (others.length) d.equivalentUser = others[0].email;
       }
     }
+    if (d.equivalentUser) {
+      var eqOnly = d.equivalentUser.match(/[\w.+\-]+@[\w.\-]+\.gov\.uk/i);
+      if (eqOnly) d.equivalentUser = eqOnly[0].toLowerCase();
+    }
 
     // Date fallbacks
     if (!d.startDate && allDates.length) {
-      var sd = allDates.filter(function(d2) { return /start|commencement|from/.test(d2.line); });
-      d.startDate = normaliseDate(sd.length ? sd[0].date : allDates[0].date);
+      var sdArr = allDates.filter(function(d2) { return /start|commencement|from/.test(d2.line); });
+      d.startDate = normaliseDate(sdArr.length ? sdArr[0].date : allDates[0].date);
     }
     if (!d.endDate && allDates.length > 1) {
-      var ed = allDates.filter(function(d2) { return /end|finish|until|to\b/.test(d2.line); });
-      if (ed.length) d.endDate = normaliseDate(ed[0].date);
+      var edArr = allDates.filter(function(d2) { return /end|finish|until/.test(d2.line); });
+      if (edArr.length) d.endDate = normaliseDate(edArr[0].date);
     }
 
-    // Yes/No fallbacks: scan for YES/NO on lines containing keyword anywhere
+    // Yes/No fallbacks: scan paraTexts for YES/NO near keyword
     function yesNoNear(keywords) {
-      for (var ki2 = 0; ki2 < lines.length; ki2++) {
-        var ll = lines[ki2].toLowerCase();
+      for (var ki2 = 0; ki2 < paraTexts.length; ki2++) {
+        var ll = paraTexts[ki2].toLowerCase();
         var hasKey = keywords.some(function(k) { return ll.indexOf(k) !== -1; });
         if (hasKey) {
-          // check same line and next 2
-          for (var kj = ki2; kj < Math.min(ki2+3, lines.length); kj++) {
-            if (/\byes\b/i.test(lines[kj])) return 'Yes';
-            if (/\bno\b/i.test(lines[kj])) return 'No';
+          for (var kj = ki2; kj < Math.min(ki2+3, paraTexts.length); kj++) {
+            if (/\byes\b/i.test(paraTexts[kj])) return 'Yes';
+            if (/\bno\b/i.test(paraTexts[kj])) return 'No';
           }
         }
       }
@@ -413,8 +466,8 @@
     }
     if (!d.requiresLaptop) d.requiresLaptop = yesNoNear(['laptop']);
     if (!d.requiresMobile) d.requiresMobile = yesNoNear(['mobile phone','mobile device','mobile']);
-    if (d.mailboxAccess !== 'Yes') {
-      var mxFb = yesNoNear(['mailbox','outlook mailbox']);
+    if (!d.mailboxAccess) {
+      var mxFb = yesNoNear(['outlook mailbox','additional mailbox']);
       if (mxFb) d.mailboxAccess = mxFb;
     }
 
